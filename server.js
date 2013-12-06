@@ -5,6 +5,10 @@ var express = require('express'),
 
 params.extend(app);
 
+config = {
+  port: process.env['PORT'] || 8080,
+};
+
 app.use(express.bodyParser());
 app.use(express.cookieParser('a-random-string-comes-here'));
 
@@ -129,6 +133,5 @@ app.delete('/git/tree/:repo/*', getFilePath, function(req, res) {
   res.send("");
 });
 
-var port = process.env['PORT'] || 8080;
-app.listen(port);
-console.log('Listening on', port);
+app.listen(config.port);
+console.log('Listening on', config.port);
