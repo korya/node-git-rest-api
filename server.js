@@ -84,7 +84,7 @@ app.param('repo', getRepo);
 
 app.get('/git/', function(req, res) {
   console.log('list repositories');
-  var repoList = [];
+  var repoList = fs.readdirSync(req.git.workDir);
   res.set('Content-Type', 'application/json');
   res.send(JSON.stringify(repoList));
 });
