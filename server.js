@@ -1,12 +1,14 @@
 var express = require('express'),
     params = require('express-params'),
     fs = require('fs'),
+    temp = require('temp'),
     app = express();
 
 params.extend(app);
 
 config = {
   port: process.env['PORT'] || 8080,
+  tmpDir: process.env['TMPDIR'] || '/tmp/git',
 };
 
 app.use(express.bodyParser());
@@ -25,8 +27,8 @@ function getWorkdir(req, res, next) {
   var workDir = req.signedCookies.workDir;
 
   if (!workDir) {
-    // make temporary dir
-    workDir = '/tmp/workdir';
+    // XXX who gonna clean it?
+    var workDir = temp.mkdirSync({ dir: config.tmpDir });
     res.cookie('workDir', workDir, { signed: true });
   }
   req.git.workDir = workDir;
@@ -133,5 +135,15 @@ app.delete('/git/tree/:repo/*', getFilePath, function(req, res) {
   res.send("");
 });
 
+if (!fs.existsSync(config.tmpDir)) {
+  console.log('Creating temp dir', config.tmpDir);
+  var path = config.tmpDir.split('/');
+  for (var i = 1; i <= path.length; i++) {
+    var subPath = path.slice(0, i).join('/');
+    if (!fs.existsSync(subPath)) {
+      fs.mkdirSync(subPath);
+    }
+  }
+}
 app.listen(config.port);
 console.log('Listening on', config.port);

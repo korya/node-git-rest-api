@@ -8,6 +8,7 @@
     "express": "3.x",
     "express-params": "0.0.x",
     "async": "0.2.9",
+    "temp": "0.6.0",
     "signals": "~1.0.0"
   },
   "engines": {
