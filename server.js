@@ -82,7 +82,13 @@ app.get('/git/', function(req, res) {
   res.set('Content-Type', 'application/json');
   res.send(JSON.stringify(repoList));
 });
-app.post('/git/', function(req, res) {
+app.post('/git/init', function(req, res) {
+  console.log('init repo');
+  var repo = {};
+  res.set('Content-Type', 'application/json');
+  res.send(JSON.stringify(repo));
+});
+app.post('/git/clone', function(req, res) {
   console.log('clone repo');
   var repo = {};
   res.set('Content-Type', 'application/json');
