@@ -26,9 +26,9 @@ function prepareGitVars(req, res, next) {
 function getWorkdir(req, res, next) {
   var workDir = req.signedCookies.workDir;
 
-  if (!workDir) {
+  if (!workDir || !fs.existsSync(workDir)) {
     // XXX who gonna clean it?
-    var workDir = temp.mkdirSync({ dir: config.tmpDir });
+    workDir = temp.mkdirSync({ dir: config.tmpDir });
     res.cookie('workDir', workDir, { signed: true });
   }
   req.git.workDir = workDir;
