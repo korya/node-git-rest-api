@@ -3,6 +3,7 @@ var express = require('express'),
     fs = require('fs'),
     temp = require('temp'),
     git = require('./lib/git'),
+    addressParser = require('./lib/address-parser'),
     app = express();
 
 params.extend(app);
@@ -135,11 +136,53 @@ app.post('/git/init', function(req, res) {
     });
   });
 });
+/* POST /git/clone
+ * 
+ * Request:
+ * { "remote": <remote-url> [, "repo": <local-repo-name>] }
+ *
+ * Response:
+ * { ["error": <error>] }
+ */
 app.post('/git/clone', function(req, res) {
   console.log('clone repo');
-  var repo = {};
-  res.set('Content-Type', 'application/json');
-  res.send(JSON.stringify(repo));
+
+  if (!req.body.remote) {
+      res.json(400, { error: 'Empty remote url' });
+      return;
+  }
+
+  var remote = addressParser.parseAddress(req.body.remote);
+  var repo = req.body.repo ? req.body.repo : remote.shortProject;
+  var workDir = req.git.workDir;
+  var repoDir = workDir + '/' + repo;
+
+  if (!getRepoName(repo)) {
+      res.json(400, { error: 'Invalid repo name: ' + repo });
+      return;
+  }
+
+  fs.exists(repoDir, function (exists) {
+    if (exists) {
+      res.json(400,
+	{ error: 'A repository ' + repo + ' already exists' });
+      return;
+    }
+
+    fs.mkdir(repoDir, function(err) {
+      if (err) {
+	var error = 'Cannot create ' + repo;
+	console.log(error + '; dir:', repoDir, 'err:', JSON.stringify(err));
+	res.json(500, { error: error });
+	return;
+      }
+
+      res.setTimeout(2 * 60 * 60 * 1000); // 2 hours
+      git('clone ' + remote.address + ' ' + repo, workDir)
+	.fail(function(err) { res.json(500, { error: err.error }); })
+	.done(function() { res.json(200, {}); });
+    });
+  });
 });
 
 app.get('/git/commit/:commit', function(req, res) {
