@@ -2,6 +2,7 @@ var express = require('express'),
     params = require('express-params'),
     fs = require('fs'),
     temp = require('temp'),
+    git = require('./lib/git'),
     app = express();
 
 params.extend(app);
@@ -37,16 +38,23 @@ function getWorkdir(req, res, next) {
   next();
 }
 
+function getRepoName(val) {
+  var match;
+  if (!val) return null;
+  match = /^[-._a-z0-9]*$/i.exec(String(val));
+  return match ? match[0] : null;
+}
+
 function getRepo(req, res, next, val) {
-  var match = /^[-._a-z0-9]*$/i.exec(String(val));
   var repo, workDir;
-  if (!match) {
+
+  repo = getRepoName(val);
+  if (!repo) {
     // -> 404
     next('route');
     return;
   }
 
-  repo = match[0];
   workDir = req.git.workDir + '/' + repo;
   if (!fs.existsSync(workDir)) {
     // -> 404
@@ -88,11 +96,44 @@ app.get('/git/', function(req, res) {
   res.set('Content-Type', 'application/json');
   res.send(JSON.stringify(repoList));
 });
+/* POST /git/init
+ * 
+ * Request:
+ * { "repo": <local-repo-name> }
+ *
+ * Response:
+ * { ["error": <error>] }
+ */
 app.post('/git/init', function(req, res) {
-  console.log('init repo');
-  var repo = {};
-  res.set('Content-Type', 'application/json');
-  res.send(JSON.stringify(repo));
+  console.log('init repo:', req.body.repo);
+
+  if (!getRepoName(req.body.repo)) {
+      res.json(400, { error: 'Invalid repo name: ' + req.body.repo });
+      return;
+  }
+
+  var repo = req.body.repo;
+  var repoDir = req.git.workDir + '/' + repo;
+  fs.exists(repoDir, function (exists) {
+    if (exists) {
+      res.json(400,
+	{ error: 'A repository ' + repo + ' already exists' });
+      return;
+    }
+
+    fs.mkdir(repoDir, function(err) {
+      if (err) {
+	var error = 'Cannot create ' + repo;
+	console.log(error + '; dir:', repoDir, 'err:', JSON.stringify(err));
+	res.json(500, { error: error });
+	return;
+      }
+
+      git('init', repoDir)
+	.fail(function(err) { res.json(500, { error: err.error }); })
+	.done(function() { res.json(200, {}); });
+    });
+  });
 });
 app.post('/git/clone', function(req, res) {
   console.log('clone repo');
