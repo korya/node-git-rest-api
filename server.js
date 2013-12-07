@@ -3,6 +3,7 @@ var express = require('express'),
     fs = require('fs'),
     temp = require('temp'),
     git = require('./lib/git'),
+    gitParser = require('./lib/git-parser'),
     addressParser = require('./lib/address-parser'),
     app = express();
 
@@ -185,11 +186,37 @@ app.post('/git/clone', function(req, res) {
   });
 });
 
+/* GET /git/:repo/commit/:commit
+ * 
+ * Response:
+ * {
+ *   "sha": <COMMIT SHA1 HASH STRING>,
+ *   "parents": [ <PARENT SHA1 HASH STRING>* ],
+ *   "isMerge": <COMMIT IS A MERGE>,
+ *   "author": <AUTHOR>,
+ *   "authorDate": <AUTHOR DATE>,
+ *   "committer": <COMMITTER>,
+ *   "commitDate": <COMMIT DATE>,
+ *   "title": <COMMIT TITLE>,
+ *   "message": <COMMIT MESSAGE>,
+ *   "file": [
+ *     "action": ["added", "removed", "changed"],
+ *     "path": <FILE PATH>
+ *   ]
+ * }
+ *
+ * Error:
+ * { error: <ERROR STRING> }
+ */
 app.get('/git/:repo/commit/:commit', function(req, res) {
-  console.log('get commit info: ', req.route);
-  var commit = {};
-  res.set('Content-Type', 'application/json');
-  res.send(JSON.stringify(commit));
+  var workDir = req.git.tree.workDir;
+  var commit = req.params.commit[0];
+
+  console.log('get commit info: ', commit, ', workDir:', workDir);
+  git('show --decorate=full --pretty=fuller --parents ' + commit, workDir)
+    .parser(gitParser.parseGitCommitShow)
+    .fail(function(err) { res.json(500, { error: err.error }); })
+    .done(function(commit) { res.json(200, commit); });
 });
 
 app.get('/git/:repo/tree/.git/checkout', function(req, res) {
