@@ -185,27 +185,27 @@ app.post('/git/clone', function(req, res) {
   });
 });
 
-app.get('/git/commit/:commit', function(req, res) {
+app.get('/git/:repo/commit/:commit', function(req, res) {
   console.log('get commit info: ', req.route);
   var commit = {};
   res.set('Content-Type', 'application/json');
   res.send(JSON.stringify(commit));
 });
 
-app.get('/git/tree/:repo/.git/checkout', function(req, res) {
+app.get('/git/:repo/tree/.git/checkout', function(req, res) {
   console.log('checkout branch');
   res.send("");
 });
-app.get('/git/tree/:repo/.git/commit', function(req, res) {
+app.get('/git/:repo/tree/.git/commit', function(req, res) {
   console.log('commit branch');
   res.send("");
 });
-app.get('/git/tree/:repo/.git/push', function(req, res) {
+app.get('/git/:repo/tree/.git/push', function(req, res) {
   console.log('push branch to remote');
   res.send("");
 });
 
-app.get('/git/tree/:repo/*', [getFilePath, getRevision], function(req, res) {
+app.get('/git/:repo/tree/*', [getFilePath, getRevision], function(req, res) {
   console.log('get file: ', JSON.stringify(req.git, null, 2));
   var contents = "";
   res.send(console);
@@ -214,7 +214,7 @@ app.post('/git/tree/:repo/*', getFilePath, function(req, res) {
   console.log('set file: ', JSON.stringify(req.git, null, 2));
   res.send("");
 });
-app.delete('/git/tree/:repo/*', getFilePath, function(req, res) {
+app.delete('/git/:repo/tree/*', getFilePath, function(req, res) {
   console.log('del file: ', JSON.stringify(req.git, null, 2));
   res.send("");
 });
