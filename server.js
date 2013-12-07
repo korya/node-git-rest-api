@@ -219,9 +219,34 @@ app.get('/git/:repo/commit/:commit', function(req, res) {
     .done(function(commit) { res.json(200, commit); });
 });
 
-app.get('/git/:repo/tree/.git/checkout', function(req, res) {
-  console.log('checkout branch');
-  res.send("");
+/* POST /git/:repo/tree/.git/checkout
+ * 
+ * Request:
+ *  { "branch": <BRANCH NAME> }
+ *
+ * Response:
+ * { ["error": <ERROR STRING>] }
+ */
+app.post('/git/:repo/tree/.git/checkout', function(req, res) {
+  var workDir = req.git.tree.workDir;
+  var branch = req.body.branch;
+
+  if (!branch) {
+    res.json(400, { error: 'No branch name is specified' });
+    return;
+  }
+
+  console.log('checkout branch:', branch);
+  fs.exists(workDir + '/.git/refs/heads/' + branch, function(exists) {
+    if (!exists) {
+      res.json(400, { error: 'Branch "' + branch + '" does not exist' });
+      return;
+    }
+
+    git('checkout ' + branch, workDir)
+      .fail(function(err) { res.json(500, { error: err.error }); })
+      .done(function() { res.json(200, {}); });
+  });
 });
 app.get('/git/:repo/tree/.git/commit', function(req, res) {
   console.log('commit branch');
