@@ -3,9 +3,11 @@ var express = require('express'),
     fs = require('fs'),
     path = require('path'),
     temp = require('temp'),
-    git = require('./lib/git'),
+    Q = require('q'),
+    dgit = require('./lib/deferred-git'),
     gitParser = require('./lib/git-parser'),
     addressParser = require('./lib/address-parser'),
+    dfs = require('./lib/deferred-fs'),
     app = express();
 
 params.extend(app);
@@ -15,7 +17,8 @@ config = {
   tmpDir: process.env['TMPDIR'] || '/tmp/git',
 };
 
-app.use(express.bodyParser());
+app.use(express.bodyParser({ uploadDir: '/tmp', keepExtensions: true }));
+app.use(express.methodOverride());
 app.use(express.cookieParser('a-random-string-comes-here'));
 
 function prepareGitVars(req, res, next) {
@@ -30,15 +33,17 @@ function prepareGitVars(req, res, next) {
 function getWorkdir(req, res, next) {
   var workDir = req.signedCookies.workDir;
 
-  if (!workDir || !fs.existsSync(workDir)) {
-    // XXX who gonna clean it?
-    workDir = temp.mkdirSync({ dir: config.tmpDir });
-    res.cookie('workDir', workDir, { signed: true });
-  }
-  req.git.workDir = workDir;
-  console.log('work dir:', req.git.workDir);
-
-  next();
+  dfs.exists(workDir)
+    .then(function (exists) { if (!exists) throw new Error('not exists'); })
+    .catch(function () {
+      // XXX who gonna clean it?
+      workDir = temp.mkdirSync({ dir: config.tmpDir });
+      res.cookie('workDir', workDir, { signed: true });
+    }).then(function() {
+      req.git.workDir = workDir;
+      console.log('work dir:', req.git.workDir);
+      next();
+    });
 }
 
 function getRepoName(val) {
@@ -91,30 +96,37 @@ function getRevision(req, res, next) {
   next();
 }
 
-function getFileAction(req, res, next) {
-  req.git.file.action = req.query.action ? req.query.action : 'show';
-  console.log('action:', req.git.file.action);
-  next();
-}
-
 app.use(prepareGitVars);
 app.use(getWorkdir);
 app.param('commit', /^[a-f0-9]{5,40}$/i);
 app.param('repo', getRepo);
 
+/* GET /git/
+ *
+ * Response:
+ *   json: [ (<repo-name>)* ]
+ * Error:
+ *   json: { "error": <error> }
+ */
 app.get('/git/', function(req, res) {
+  var deferred = Q.defer();
   console.log('list repositories');
-  var repoList = fs.readdirSync(req.git.workDir);
-  res.set('Content-Type', 'application/json');
-  res.send(JSON.stringify(repoList));
+  dfs.readdir(req.git.workDir)
+    .then(
+      function(repoList) { res.json(repoList); },
+      function(err) { reg.json(400, { error: err }); }
+    );
 });
+
 /* POST /git/init
  * 
  * Request:
- * { "repo": <local-repo-name> }
+ *   json: { "repo": <local-repo-name> }
  *
  * Response:
- * { ["error": <error>] }
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
  */
 app.post('/git/init', function(req, res) {
   console.log('init repo:', req.body.repo);
@@ -125,35 +137,28 @@ app.post('/git/init', function(req, res) {
   }
 
   var repo = req.body.repo;
-  var repoDir = req.git.workDir + '/' + repo;
-  fs.exists(repoDir, function (exists) {
-    if (exists) {
-      res.json(400,
-	{ error: 'A repository ' + repo + ' already exists' });
-      return;
-    }
-
-    fs.mkdir(repoDir, function(err) {
-      if (err) {
-	var error = 'Cannot create ' + repo;
-	console.log(error + '; dir:', repoDir, 'err:', JSON.stringify(err));
-	res.json(500, { error: error });
-	return;
-      }
-
-      git('init', repoDir)
-	.fail(function(err) { res.json(500, { error: err.error }); })
-	.done(function() { res.json(200, {}); });
-    });
-  });
+  var repoDir = path.join(req.git.workDir, repo);
+  dfs.exists(repoDir)
+    .then(function (exists) {
+      if (exists) throw new Error('A repository ' + repo + ' already exists');
+    })
+    .then(function() { return dfs.mkdir(repoDir); })
+    .then(function() { return dgit('init', repoDir); })
+    .then(
+      function() { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
 });
+
 /* POST /git/clone
  * 
  * Request:
- * { "remote": <remote-url> [, "repo": <local-repo-name>] }
+ * { "remote": <remote-url> (, "repo": <local-repo-name>) }
  *
  * Response:
- * { ["error": <error>] }
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
  */
 app.post('/git/clone', function(req, res) {
   console.log('clone repo');
@@ -166,78 +171,37 @@ app.post('/git/clone', function(req, res) {
   var remote = addressParser.parseAddress(req.body.remote);
   var repo = req.body.repo ? req.body.repo : remote.shortProject;
   var workDir = req.git.workDir;
-  var repoDir = workDir + '/' + repo;
+  var repoDir = path.join(workDir, repo);
 
   if (!getRepoName(repo)) {
       res.json(400, { error: 'Invalid repo name: ' + repo });
       return;
   }
 
-  fs.exists(repoDir, function (exists) {
-    if (exists) {
-      res.json(400,
-	{ error: 'A repository ' + repo + ' already exists' });
-      return;
-    }
-
-    fs.mkdir(repoDir, function(err) {
-      if (err) {
-	var error = 'Cannot create ' + repo;
-	console.log(error + '; dir:', repoDir, 'err:', JSON.stringify(err));
-	res.json(500, { error: error });
-	return;
-      }
-
-      res.setTimeout(2 * 60 * 60 * 1000); // 2 hours
-      git('clone ' + remote.address + ' ' + repo, workDir)
-	.fail(function(err) { res.json(500, { error: err.error }); })
-	.done(function() { res.json(200, {}); });
-    });
-  });
+  dfs.exists(repoDir)
+    .then(function (exists) {
+      if (exists) throw new Error('A repository ' + repo + ' already exists');
+    })
+    .then(function() {
+      return dgit('clone ' + remote.address + ' ' + repo, workDir);
+    })
+    .then(
+      function() { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
 });
 
-/* GET /git/:repo/commit/:commit
- * 
- * Response:
- * {
- *   "sha": <COMMIT SHA1 HASH STRING>,
- *   "parents": [ <PARENT SHA1 HASH STRING>* ],
- *   "isMerge": <COMMIT IS A MERGE>,
- *   "author": <AUTHOR>,
- *   "authorDate": <AUTHOR DATE>,
- *   "committer": <COMMITTER>,
- *   "commitDate": <COMMIT DATE>,
- *   "title": <COMMIT TITLE>,
- *   "message": <COMMIT MESSAGE>,
- *   "file": [
- *     "action": ["added", "removed", "changed"],
- *     "path": <FILE PATH>
- *   ]
- * }
- *
- * Error:
- * { error: <ERROR STRING> }
- */
-app.get('/git/:repo/commit/:commit', function(req, res) {
-  var workDir = req.git.tree.workDir;
-  var commit = req.params.commit[0];
-
-  console.log('get commit info: ', commit, ', workDir:', workDir);
-  git('show --decorate=full --pretty=fuller --parents ' + commit, workDir)
-    .parser(gitParser.parseGitCommitShow)
-    .fail(function(err) { res.json(500, { error: err.error }); })
-    .done(function(commit) { res.json(200, commit); });
-});
-
-/* POST /git/:repo/tree/.git/checkout
+/* POST /git/:repo/checkout
  * 
  * Request:
- *  { "branch": <BRANCH NAME> }
+ *  { "branch": <branch name> }
  *
  * Response:
- * { ["error": <ERROR STRING>] }
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
  */
-app.post('/git/:repo/tree/.git/checkout', function(req, res) {
+app.post('/git/:repo/checkout', function(req, res) {
   var workDir = req.git.tree.workDir;
   var branch = req.body.branch;
 
@@ -247,93 +211,237 @@ app.post('/git/:repo/tree/.git/checkout', function(req, res) {
   }
 
   console.log('checkout branch:', branch);
-  fs.exists(workDir + '/.git/refs/heads/' + branch, function(exists) {
-    if (!exists) {
-      res.json(400, { error: 'Branch "' + branch + '" does not exist' });
-      return;
-    }
-
-    git('checkout ' + branch, workDir)
-      .fail(function(err) { res.json(500, { error: err.error }); })
-      .done(function() { res.json(200, {}); });
-  });
-});
-app.get('/git/:repo/tree/.git/commit', function(req, res) {
-  console.log('commit branch');
-  res.send("");
-});
-app.get('/git/:repo/tree/.git/push', function(req, res) {
-  console.log('push branch to remote');
-  res.send("");
+  dfs.exists(workDir + '/.git/refs/heads/' + branch)
+    .then(function (exists) {
+      if (!exists) throw new Error('Unknown branch ' + branch);
+    })
+    .then(function() {
+      return dgit('checkout ' + branch, workDir);
+    })
+    .then(
+      function() { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
 });
 
-/* GET /git/:repo/tree/<PATH>[?rev=<REVISION>&action=<ACTION>]
+/* GET /git/:repo/show/<path>?rev=<revision>
  *  `rev` -- can be any legal revision
- *  `action` -- possible values: "show" (default), "ls-tree"
- *    "show" - invoke `git show`
- *    "ls-tree" - invoke `ls tree`
  * 
  * Response:
- *   show:
- *     <FILE/DIR CONTENTS>
- *   ls-tree:
- *     [
- *       {
- *         "name": <NAME>,
- *         "mode": <MODE>,
- *         "sha": <SHA>,
- *         "type": "blob" or "tree",
- *         "contents": (for trees only),
- *       }*
- *     ]
- *   Error:
- *     { "error": <ERROR STRING> }
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
  */
-app.get('/git/:repo/tree/*', [getFilePath, getRevision, getFileAction], function(req, res) {
+app.post('/git/:repo/show/*', [getFilePath, getRevision], function(req, res) {
   var workDir = req.git.tree.workDir;
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
-  var action = req.git.file.action;
 
-  console.log('get file: ' + action + ' ' + rev + ':' + file);
+  dgit('show ' + rev + ':' + file, workDir)
+    .then(
+      function(data) { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
+});
 
-  if (action === 'ls-tree') {
-    git('ls-tree -tr ' + rev + ' ' + file, workDir)
-      .parser(gitParser.parseLsTree(file))
-      .fail(function(err) { res.json(400, { error: err.message }); })
-      .done(function(obj) {
-	if (!obj) {
-	  res.json(400, { error: 'No such file ' + rev + ':' + file });
-	  return;
-	}
+/* GET /git/:repo/ls-tree/<path>?rev=<revision>
+ *  `rev` -- can be any legal revision
+ * 
+ * Response:
+ *   json: [
+ *     ({
+ *       "name": <name>,
+ *       "mode": <mode>,
+ *       "sha": <sha>,
+ *       "type": ("blob" or "tree"),
+ *       "contents": (for trees only),
+ *     })*
+ *   ]
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.get('/git/:repo/ls-tree/*', [getFilePath, getRevision], function(req, res) {
+  var workDir = req.git.tree.workDir;
+  var rev = req.git.file.rev || 'HEAD';
+  var file = req.git.file.path;
 
-	res.json(200, obj);
-      });
+  dgit('ls-tree -tr ' + rev + ' ' + file, workDir, gitParser.parseLsTree)
+    .then(function (obj) {
+	if (!obj) throw new Error('No such file ' + file + ' in ' + rev);
+	return obj;
+    })
+    .then(
+      function (obj) { res.json(200, obj); },
+      function (err) { res.json(400, { error: err }); }
+    );
+});
+
+/* GET /git/:repo/commit/:commit
+ * 
+ * Response:
+ *   json: {
+ *     "sha": <commit sha1 hash string>,
+ *     "parents": [ (<parent sha1 hash string>)* ],
+ *     "isMerge": <commit is a merge>,
+ *     "author": <author>,
+ *     "authorDate": <author date>,
+ *     "committer": <committer>,
+ *     "commitDate": <commit date>,
+ *     "title": <commit title>,
+ *     "message": <commit message>,
+ *     "file": [
+ *       "action": ("added", "removed" or "changed"),
+ *       "path": <file path>
+ *     ]
+ *   }
+ *
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.get('/git/:repo/commit/:commit', function(req, res) {
+  var workDir = req.git.tree.workDir;
+  var commit = req.params.commit[0];
+
+  console.log('get commit info: ', commit, ', workDir:', workDir);
+  dgit('show --decorate=full --pretty=fuller --parents ' + commit, workDir,
+    gitParser.parseGitCommitShow).then(
+      function(commit) { res.json(200, commit); },
+      function(err) { res.json(500, { error: err.error }); }
+    );
+});
+
+/* POST /git/:repo/commit?message=<commit-message>
+ * 
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post('/git/:repo/commit/', function(req, res) {
+  var message = req.query.message;
+  var workDir = req.git.tree.workDir;
+
+  if (!message) {
+    res.json(400, { error: 'Empty commit message' });
     return;
   }
 
-  git('show ' + rev + ':' + file, workDir)
-    .fail(function(err) { res.json(500, { error: err.error }); })
-    .done(function(data) { res.send(data); });
+  dgit('commit -m ' + message , workDir)
+    .then(
+      function () { res.json(200, {}); },
+      function (err) { res.json(400, { error: err }); }
+    );
 });
-app.post('/git/tree/:repo/*', getFilePath, function(req, res) {
-  console.log('set file: ', JSON.stringify(req.git, null, 2));
-  res.send("");
+
+/* POST /git/:repo/push
+ * 
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post('/git/:repo/push', function(req, res) {
+  dgit('push', workDir)
+    .then(
+      function (obj) { res.json(200, obj); },
+      function (err) { res.json(400, { error: err }); }
+    );
 });
+
+/* GET /git/:repo/tree/<path>
+ * 
+ * Response:
+ *   json: {
+ *     "name": <name>,
+ *     "type": ("dir" or "file"),
+ *     "status": '', (XXX not implemented)
+ *     "contents": (for dirs only)
+ *   }
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.get('/git/:repo/tree/*', getFilePath, function(req, res) {
+  var workDir = req.git.tree.workDir;
+  var file = req.git.file.path;
+  var fileFullPath = path.join(workDir, file);
+
+  console.log('get file: ' + file);
+  dfs.exists(fileFullPath)
+    .then(function (exists) {
+      if (!exists) return Q.reject('No such file: ' + fileFullPath);
+    })
+    .then(function() { return dfs.stat(fileFullPath) })
+    .then(function(stats) {
+      if (stats.isFile()) {
+        return dfs.readFile(fileFullPath)
+	  .then(function (buffer) { res.send(200, buffer); });
+      }
+      if (stats.isDirectory()) {
+	return dgit.lsR(fileFullPath)
+	  .then(function (obj) { res.json(200, obj); });
+      }
+      throw new Error('Not a regular file or a directory ' + file);
+    })
+    .catch(function (err) { res.json(400, { error: err }); });
+});
+
+/* POST /git/:repo/tree/<path>
+ * 
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post('/git/:repo/tree/*', getFilePath, function(req, res) {
+  var workDir = req.git.tree.workDir;
+  var file = req.git.file.path;
+  var fileFullPath = path.join(workDir, file);
+  var tmpPath = req.files && req.files.file ? req.files.file.path : null;
+
+  if (!tmpPath) {
+    res.json(400, { error: 'No file uploaded' });
+    return;
+  }
+
+  dfs.exists(fileFullPath)
+    .then(function (exists) {
+      if (!exists) return dfs.mkdirp(path.dirname(fileFullPath), 0755);
+      return dfs.stat(fileFullPath).then(function (stats) {
+	if (!stats.isFile()) return Q.reject('Not a regular file: ' + file);
+      });
+    })
+    .then(function () { return dfs.rename(tmpPath, path.join(workDir, file)); })
+    .then(function() { return dgit('add ' + file, workDir); })
+    .then(
+      function () { res.json(200, {}); },
+      function (err) { res.json(400, { error: err }); }
+    );
+});
+
+/* DELETE /git/:repo/tree/<path>
+ * 
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
 app.delete('/git/:repo/tree/*', getFilePath, function(req, res) {
-  console.log('del file: ', JSON.stringify(req.git, null, 2));
-  res.send("");
+  var workDir = req.git.tree.workDir;
+  var file = req.git.file.path;
+
+  console.log('del file:', file);
+  dgit('rm -rf ' + file, workDir)
+    .then(
+      function () { res.json(200, {}); },
+      function (err) { res.json(400, { error: err }); }
+    );
 });
 
 if (!fs.existsSync(config.tmpDir)) {
   console.log('Creating temp dir', config.tmpDir);
-  var path = config.tmpDir.split('/');
-  for (var i = 1; i <= path.length; i++) {
-    var subPath = path.slice(0, i).join('/');
-    if (!fs.existsSync(subPath)) {
-      fs.mkdirSync(subPath);
-    }
-  }
+  mkdirp.sync(config.tmpDir, 0755, function(err) {
+    if (err) { console.err(err); process.exit(1); }
+  });
 }
 app.listen(config.port);
 console.log('Listening on', config.port);
