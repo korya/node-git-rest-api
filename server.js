@@ -91,6 +91,12 @@ function getRevision(req, res, next) {
   next();
 }
 
+function getFileAction(req, res, next) {
+  req.git.file.action = req.query.action ? req.query.action : 'show';
+  console.log('action:', req.git.file.action);
+  next();
+}
+
 app.use(prepareGitVars);
 app.use(getWorkdir);
 app.param('commit', /^[a-f0-9]{5,40}$/i);
@@ -261,20 +267,50 @@ app.get('/git/:repo/tree/.git/push', function(req, res) {
   res.send("");
 });
 
-/* GET /git/:repo/tree/<PATH>[?rev=<REVISION>]
+/* GET /git/:repo/tree/<PATH>[?rev=<REVISION>&action=<ACTION>]
  *  `rev` -- can be any legal revision
+ *  `action` -- possible values: "show" (default), "ls-tree"
+ *    "show" - invoke `git show`
+ *    "ls-tree" - invoke `ls tree`
  * 
  * Response:
+ *   show:
  *     <FILE/DIR CONTENTS>
+ *   ls-tree:
+ *     [
+ *       {
+ *         "name": <NAME>,
+ *         "mode": <MODE>,
+ *         "sha": <SHA>,
+ *         "type": "blob" or "tree",
+ *         "contents": (for trees only),
+ *       }*
+ *     ]
  *   Error:
  *     { "error": <ERROR STRING> }
  */
-app.get('/git/:repo/tree/*', [getFilePath, getRevision], function(req, res) {
+app.get('/git/:repo/tree/*', [getFilePath, getRevision, getFileAction], function(req, res) {
   var workDir = req.git.tree.workDir;
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
+  var action = req.git.file.action;
 
-  console.log('get file: ' + rev + ':' + file);
+  console.log('get file: ' + action + ' ' + rev + ':' + file);
+
+  if (action === 'ls-tree') {
+    git('ls-tree -tr ' + rev + ' ' + file, workDir)
+      .parser(gitParser.parseLsTree(file))
+      .fail(function(err) { res.json(400, { error: err.message }); })
+      .done(function(obj) {
+	if (!obj) {
+	  res.json(400, { error: 'No such file ' + rev + ':' + file });
+	  return;
+	}
+
+	res.json(200, obj);
+      });
+    return;
+  }
 
   git('show ' + rev + ':' + file, workDir)
     .fail(function(err) { res.json(500, { error: err.error }); })
