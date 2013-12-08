@@ -1,6 +1,7 @@
 var express = require('express'),
     params = require('express-params'),
     fs = require('fs'),
+    path = require('path'),
     temp = require('temp'),
     git = require('./lib/git'),
     gitParser = require('./lib/git-parser'),
@@ -71,10 +72,13 @@ function getRepo(req, res, next, val) {
 }
 
 function getFilePath(req, res, next) {
-  // Path form: /git/tree/<repo>/<path>
-  //           0  1   2     3      4
-  var path = req.path.split('/').slice(4).join('/');
-  req.git.file.path = path;
+  // Path form: /git/<repo>/tree/<path>
+  //           0  1    2     3     4
+  var filePath = req.path.split('/').slice(4).join(path.sep);
+  /* get rid of trailing slash */
+  filePath = path.normalize(filePath + '/_/..');
+  if (filePath === '/') filePath = '';
+  req.git.file.path = filePath;
   console.log('file path:', req.git.file.path);
   next();
 }
@@ -257,10 +261,24 @@ app.get('/git/:repo/tree/.git/push', function(req, res) {
   res.send("");
 });
 
+/* GET /git/:repo/tree/<PATH>[?rev=<REVISION>]
+ *  `rev` -- can be any legal revision
+ * 
+ * Response:
+ *     <FILE/DIR CONTENTS>
+ *   Error:
+ *     { "error": <ERROR STRING> }
+ */
 app.get('/git/:repo/tree/*', [getFilePath, getRevision], function(req, res) {
-  console.log('get file: ', JSON.stringify(req.git, null, 2));
-  var contents = "";
-  res.send(console);
+  var workDir = req.git.tree.workDir;
+  var rev = req.git.file.rev || 'HEAD';
+  var file = req.git.file.path;
+
+  console.log('get file: ' + rev + ':' + file);
+
+  git('show ' + rev + ':' + file, workDir)
+    .fail(function(err) { res.json(500, { error: err.error }); })
+    .done(function(data) { res.send(data); });
 });
 app.post('/git/tree/:repo/*', getFilePath, function(req, res) {
   console.log('set file: ', JSON.stringify(req.git, null, 2));
