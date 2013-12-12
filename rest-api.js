@@ -180,7 +180,7 @@ app.post(config.prefix + '/init', function(req, res) {
  *   json: { "error": <error> }
  */
 app.post(config.prefix + '/clone', function(req, res) {
-  console.log('clone repo');
+  console.log('clone repo:', req.body.remote);
 
   if (!req.body.remote) {
       res.json(400, { error: 'Empty remote url' });
@@ -188,15 +188,14 @@ app.post(config.prefix + '/clone', function(req, res) {
   }
 
   var remote = addressParser.parseAddress(req.body.remote);
-  var repo = req.body.repo ? req.body.repo : remote.shortProject;
-  var workDir = req.git.workDir;
-  var repoDir = path.join(workDir, repo);
-
+  var repo = req.body.repo || remote.shortProject;
   if (!getRepoName(repo)) {
       res.json(400, { error: 'Invalid repo name: ' + repo });
       return;
   }
 
+  var workDir = req.git.workDir;
+  var repoDir = path.join(workDir, repo);
   dfs.exists(repoDir)
     .then(function (exists) {
       if (exists) return Q.reject('A repository ' + repo + ' already exists');
