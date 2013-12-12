@@ -209,6 +209,33 @@ app.post(config.prefix + '/clone', function(req, res) {
     );
 });
 
+/* POST /:repo/branch
+ * 
+ * Request:
+ *  { "branch": <branch name> }
+ *
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post(config.prefix + '/:repo/branch', function(req, res) {
+  var workDir = req.git.tree.workDir;
+  var branch = req.body.branch;
+
+  console.log('create branch:', branch);
+  if (!branch) {
+    res.json(400, { error: 'No branch name is specified' });
+    return;
+  }
+
+  dgit('branch ' + branch, workDir)
+    .then(
+      function() { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
+});
+
 /* POST /:repo/checkout
  * 
  * Request:

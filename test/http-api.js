@@ -135,6 +135,19 @@ describe('API:', function () {
 	});
     });
 
+    it('POST /:repo/branch should reply with error', function (done) {
+      request(URL)
+	.post('/repo/branch')
+        .send()
+	.expect('Content-Type', /json/)
+        .expect(400)
+        .end(function (err, res) {
+	  if (err) throw err;
+	  res.body.error.should.not.equal('');
+	  done();
+	});
+    });
+
     it('POST /:repo/checkout should reply with error', function (done) {
       request(URL)
 	.post('/repo/checkout')
