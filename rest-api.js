@@ -361,7 +361,11 @@ app.get(config.prefix + '/:repo/commit/:commit', function(req, res) {
  *  { "message": <commit message> }
  *
  * Response:
- *   json: {}
+ *   json: {
+ *     "branch": <branch name>,
+ *     "commit": <commit sha>,
+ *     "title": <commit title>
+ *   }
  * Error:
  *   json: { "error": <error> }
  */
@@ -375,10 +379,10 @@ app.post(config.prefix + '/:repo/commit', function(req, res) {
     return;
   }
 
-  dgit('commit -m ' + message , workDir)
+  dgit('commit -m ' + message , workDir, gitParser.parseCommit)
     .then(
-      function () { res.json(200, {}); },
-      function (err) { res.json(400, { error: err }); }
+      function (commit) { res.json(200, commit); },
+      function (err) { res.json(400, { error: err.stdout }); }
     );
 });
 
