@@ -34,7 +34,7 @@ function getWorkdir(req, res, next) {
   var workDir = req.signedCookies.workDir;
 
   dfs.exists(workDir)
-    .then(function (exists) { if (!exists) throw new Error('not exists'); })
+    .then(function (exists) { if (!exists) return Q.reject('not exists'); })
     .catch(function () {
       // XXX who gonna clean it?
       workDir = temp.mkdirSync({ dir: config.tmpDir });
@@ -140,7 +140,7 @@ app.post('/git/init', function(req, res) {
   var repoDir = path.join(req.git.workDir, repo);
   dfs.exists(repoDir)
     .then(function (exists) {
-      if (exists) throw new Error('A repository ' + repo + ' already exists');
+      if (exists) return Q.reject('A repository ' + repo + ' already exists');
     })
     .then(function() { return dfs.mkdir(repoDir); })
     .then(function() { return dgit('init', repoDir); })
@@ -180,7 +180,7 @@ app.post('/git/clone', function(req, res) {
 
   dfs.exists(repoDir)
     .then(function (exists) {
-      if (exists) throw new Error('A repository ' + repo + ' already exists');
+      if (exists) return Q.reject('A repository ' + repo + ' already exists');
     })
     .then(function() {
       return dgit('clone ' + remote.address + ' ' + repo, workDir);
@@ -213,7 +213,7 @@ app.post('/git/:repo/checkout', function(req, res) {
   console.log('checkout branch:', branch);
   dfs.exists(workDir + '/.git/refs/heads/' + branch)
     .then(function (exists) {
-      if (!exists) throw new Error('Unknown branch ' + branch);
+      if (!exists) return Q.reject('Unknown branch ' + branch);
     })
     .then(function() {
       return dgit('checkout ' + branch, workDir);
@@ -267,7 +267,7 @@ app.get('/git/:repo/ls-tree/*', [getFilePath, getRevision], function(req, res) {
 
   dgit('ls-tree -tr ' + rev + ' ' + file, workDir, gitParser.parseLsTree)
     .then(function (obj) {
-	if (!obj) throw new Error('No such file ' + file + ' in ' + rev);
+	if (!obj) return Q.reject('No such file ' + file + ' in ' + rev);
 	return obj;
     })
     .then(
@@ -380,7 +380,7 @@ app.get('/git/:repo/tree/*', getFilePath, function(req, res) {
 	return dgit.lsR(fileFullPath)
 	  .then(function (obj) { res.json(200, obj); });
       }
-      throw new Error('Not a regular file or a directory ' + file);
+      return Q.reject('Not a regular file or a directory ' + file);
     })
     .catch(function (err) { res.json(400, { error: err }); });
 });
