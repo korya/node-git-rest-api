@@ -328,15 +328,18 @@ app.get(config.prefix + '/:repo/commit/:commit', function(req, res) {
     );
 });
 
-/* POST /:repo/commit?message=<commit-message>
+/* POST /:repo/commit
  * 
+ * Request:
+ *  { "message": <commit message> }
+ *
  * Response:
  *   json: {}
  * Error:
  *   json: { "error": <error> }
  */
 app.post(config.prefix + '/:repo/commit', function(req, res) {
-  var message = req.query.message;
+  var message = req.body.message;
   var workDir = req.git.tree.workDir;
 
   console.log('commit message:', message);
