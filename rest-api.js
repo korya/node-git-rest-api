@@ -429,7 +429,15 @@ app.put(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
 	if (!stats.isFile()) return Q.reject('Not a regular file: ' + file);
       });
     })
-    .then(function () { return dfs.rename(tmpPath, path.join(workDir, file)); })
+    .then(function () {
+      var dstPath = path.join(workDir, file);
+      /* If rename fails, try to copy the file. Rename plays with links and
+       * hence can fail when the source and the destination lye on different
+       * file systems.
+       */
+      return dfs.rename(tmpPath, dstPath)
+        .catch(function (err) { return dfs.copy(tmpPath, dstPath); });
+      })
     .then(function() { return dgit('add ' + file, workDir); })
     .then(
       function () { res.json(200, {}); },
