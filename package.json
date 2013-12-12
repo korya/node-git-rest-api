@@ -1,9 +1,13 @@
 {
-  "name": "node-git-rest-api",
+  "name": "git-rest-api",
   "description":
     "An example of a server running on Node.js and providing git restful API",
   "version": "0.0.1",
   "author": "korya <korya@github.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/korya/node-git-rest-api.git"
+  },
   "scripts": {
     "test": "make test"
   },
