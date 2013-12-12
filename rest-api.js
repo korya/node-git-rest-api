@@ -76,15 +76,13 @@ function getRepo(req, res, next, val) {
 
   repo = getRepoName(val);
   if (!repo) {
-    // -> 404
-    next('route');
+    res.json(400, { error: "Illegal repo name: " + val });
     return;
   }
 
   workDir = req.git.workDir + '/' + repo;
   if (!fs.existsSync(workDir)) {
-    // -> 404
-    next('route');
+    res.json(400, { error: "Unknown repo: " + val });
     return;
   }
 
@@ -97,8 +95,9 @@ function getRepo(req, res, next, val) {
 function getFilePath(req, res, next) {
   // Path form: <PREFIX>/<repo>/tree/<path>
   //               0        1     2     3
-  var filePath = req.path.substr(config.prefix.length)
-    .split('/').slice(3).join(path.sep);
+  var pathNoPrefix = req.path.substr(config.prefix.length);
+  var filePath = pathNoPrefix.split('/').slice(3).join(path.sep);
+
   console.log('path: ', filePath)
   /* get rid of trailing slash */
   filePath = path.normalize(filePath + '/_/..');
@@ -225,12 +224,12 @@ app.post(config.prefix + '/:repo/checkout', function(req, res) {
   var workDir = req.git.tree.workDir;
   var branch = req.body.branch;
 
+  console.log('checkout branch:', branch);
   if (!branch) {
     res.json(400, { error: 'No branch name is specified' });
     return;
   }
 
-  console.log('checkout branch:', branch);
   dfs.exists(workDir + '/.git/refs/heads/' + branch)
     .then(function (exists) {
       if (!exists) return Q.reject('Unknown branch ' + branch);
@@ -252,7 +251,7 @@ app.post(config.prefix + '/:repo/checkout', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/show/*', [getFilePath, getRevision], function(req, res) {
+app.get(config.prefix + '/:repo/show/*', [getFilePath, getRevision], function(req, res) {
   var workDir = req.git.tree.workDir;
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
@@ -337,10 +336,11 @@ app.get(config.prefix + '/:repo/commit/:commit', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/commit/', function(req, res) {
+app.post(config.prefix + '/:repo/commit', function(req, res) {
   var message = req.query.message;
   var workDir = req.git.tree.workDir;
 
+  console.log('commit message:', message);
   if (!message) {
     res.json(400, { error: 'Empty commit message' });
     return;
@@ -405,14 +405,14 @@ app.get(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
     .catch(function (err) { res.json(400, { error: err }); });
 });
 
-/* POST /:repo/tree/<path>
+/* PUT /:repo/tree/<path>
  * 
  * Response:
  *   json: {}
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
+app.put(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
   var workDir = req.git.tree.workDir;
   var file = req.git.file.path;
   var fileFullPath = path.join(workDir, file);

@@ -1,16 +1,130 @@
+var request = require('supertest'),
+    should = require('should'),
+    mkdirp = require('mkdirp'),
+    rimraf = require('rimraf'),
+    fs = require('fs'),
+    api = require('../rest-api');
 
-describe('http api', function () {
-  describe('GET /git/', function () {
-    it('should return list of repositories');
+describe('API:', function () {
+  var TMPDIR = './tmp-test-git';
+  var PORT = 9854;
+  var URL = 'http://localhost:' + PORT;
+  var server;
+
+  before(function (done) {
+    mkdirp(TMPDIR, 0755, done);
+  });
+
+  after(function (done) {
+    rimraf(TMPDIR, done);
+  });
+
+  beforeEach(function (done) {
+    var app = require('express')();
+    api.init(app, {
+      prefix: '',
+      tmpDir: TMPDIR,
+      installMiddleware: true,
+    });
+    server = require('http').createServer(app).listen(PORT);
+    console.log('Listening on', PORT);
+    done();
+  });
+
+  afterEach(function (done) {
+    server.close();
+    done();
+  });
+
+  describe('HTTP layer: replies are JSONs', function () {
+    it('GET / should reply with json', function (done) {
+      request(URL)
+	.get('/')
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('POST /init should reply with json', function (done) {
+      request(URL)
+	.post('/init')
+        .send()
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('POST /clone should reply with json', function (done) {
+      request(URL)
+	.post('/clone')
+        .send()
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('POST /:repo/checkout should reply with json', function (done) {
+      request(URL)
+	.post('/:repo/checkout')
+        .send()
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('GET /:repo/show/:path should reply with json', function (done) {
+      request(URL)
+	.get('/:repo/show/:path')
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('GET /:repo/ls-tree/:path should reply with json', function (done) {
+      request(URL)
+	.get('/:repo/ls-tree/:path')
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('GET /:repo/commit/:commit should reply with json', function (done) {
+      request(URL)
+	.get('/:repo/commit/:commit')
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('POST /:repo/commit should reply with json', function (done) {
+      request(URL)
+	.post('/:repo/commit')
+        .send()
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('POST /:repo/push should reply with json', function (done) {
+      request(URL)
+	.post('/:repo/push')
+        .send()
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('GET /:repo/tree/:path should reply with json', function (done) {
+      request(URL)
+	.get('/:repo/tree/:path')
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('PUT /:repo/tree/:path should reply with json', function (done) {
+      request(URL)
+	.put('/:repo/tree/:path')
+        .send()
+	.expect('Content-Type', /json/, done);
+    });
+
+    it('DELETE /:repo/tree/:path should reply with json', function (done) {
+      request(URL)
+	.del('/:repo/tree/:path')
+        .send()
+	.expect('Content-Type', /json/, done);
+    });
+  });
+
+  describe('GET /', function () {
+    it('should return empty list of repositories');
   });
   describe('POST /git/init', function () {
     it('should init a new repository');
   });
   describe('POST /git/clone', function () {
     it('should clone a remote repository');
-  });
-  describe('POST /git/:repo/checkout', function () {
-    it('should checkout a branch in a local repository');
   });
   describe('POST /git/:repo/checkout', function () {
     it('should checkout a branch in a local repository');
