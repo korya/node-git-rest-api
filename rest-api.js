@@ -7,20 +7,37 @@ var express = require('express'),
     dgit = require('./lib/deferred-git'),
     gitParser = require('./lib/git-parser'),
     addressParser = require('./lib/address-parser'),
-    dfs = require('./lib/deferred-fs'),
-    app = express();
+    dfs = require('./lib/deferred-fs');
 
-params.extend(app);
-
-config = {
-  prefix: process.env['PREFIX'] || '',
-  port: process.env['PORT'] || 8080,
-  tmpDir: process.env['TMPDIR'] || '/tmp/git',
+defaultConfig = {
+  prefix: '',
+  tmpDir: '/tmp/git',
+  installMiddleware: false,
 };
 
-app.use(express.bodyParser({ uploadDir: '/tmp', keepExtensions: true }));
-app.use(express.methodOverride());
-app.use(express.cookieParser('a-random-string-comes-here'));
+function mergeConfigs(dst, src) {
+  /* XXX good enough */
+  for (var p in src) {
+    if (!src.hasOwnProperty(p) || src[p] === undefined) continue;
+    if (dst.hasOwnProperty(p) && dst[p] !== undefined) continue;
+    /* A property is not defined -- set the default value */
+    dst[p] = src[p];
+  }
+}
+
+exports.init = function(app, config) {
+
+mergeConfigs(config, defaultConfig);
+config.prefix = config.prefix.replace(/\/*$/, '');
+
+/* XXX Should be replaced */
+params.extend(app);
+
+if (config.installMiddleware) {
+  app.use(express.bodyParser({ uploadDir: '/tmp', keepExtensions: true }));
+  app.use(express.methodOverride());
+  app.use(express.cookieParser('a-random-string-comes-here'));
+}
 
 function prepareGitVars(req, res, next) {
   req.git = {
@@ -446,5 +463,5 @@ if (!fs.existsSync(config.tmpDir)) {
     if (err) { console.err(err); process.exit(1); }
   });
 }
-app.listen(config.port);
-console.log('Listening on', config.port);
+
+} /* exports.init */
