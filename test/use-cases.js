@@ -395,6 +395,71 @@ describe('API:', function () {
       });
   });
 
+  /* echo AAA > a.txt && git add a.txt */
+  it('should be possible to write to an existing file', function (done) {
+    uploadFile(agent, 'test', 'a.txt', 'AAA')
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	done();
+      });
+  });
+  
+  /* git rm b.txt */
+  it('should be possible to remove an existing file', function (done) {
+    agent
+      .del('/test/tree/b.txt')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.should.eql({});
+	done();
+      });
+  });
+
+  var commitC;
+  /* git commit -m 'B' */
+  it('should be possible to commit staged changes', function (done) {
+    var message = 'AAA -> a.txt, remove b.txt';
+
+    agent
+      .post('/test/commit')
+      .send({ message: message })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.branch.should.equal('test-br');
+	res.body.sha1.should.not.equal('');
+	res.body.title.should.equal(message);
+	commitC = res.body.sha1;
+	done();
+      });
+  });
+
+  it('should be possible to see commit C details', function (done) {
+    agent
+      .get('/test/commit/' + commitC)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	res.body.sha1.should.startWith(commitC);
+	res.body.files.should.eql([
+	  { path: 'a.txt', action: 'changed' },
+	  { path: 'b.txt', action: 'removed' },
+	]);
+	res.body.parents.should.be.an.Array.and.have.lengthOf(1);
+	res.body.parents[0].should.startWith(commitB);
+	res.body.title.should.eql('AAA -> a.txt, remove b.txt');
+	done();
+      });
+  });
+
 //     it('POST /:repo/checkout should reply with error', function (done) {
 //       request(URL)
 //         .post('/repo/checkout')
