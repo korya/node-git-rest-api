@@ -78,7 +78,7 @@ describe('API:', function () {
         .expect(200)
         .end(function (err, res) {
 	  if (err) throw err;
-	  res.body.should.eql({});
+	  res.body.should.eql({repo:"repo"});
 	  done();
 	});
     });

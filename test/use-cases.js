@@ -56,6 +56,7 @@ describe('API:', function () {
       .end(function (err, res) {
 	if (err) throw err;
 	should.not.exist(res.body.error);
+	res.body.should.eql({ repo: "test" });
 	done();
       });
   });
@@ -95,6 +96,7 @@ describe('API:', function () {
       .end(function (err, res) {
 	if (err) throw err;
 	should.not.exist(res.body.error);
+	res.body.should.eql({ repo: "test-clone" });
 	done();
       });
   });
@@ -136,7 +138,7 @@ describe('API:', function () {
    */
 
   /* echo A > a.txt && git add a.txt */
-  it('should be possible to write to a file', function (done) {
+  it('should be possible to write to a new file', function (done) {
     uploadFile(agent, 'test', 'a.txt', 'A')
       .expect(200)
       .end(function (err, res) {
@@ -146,6 +148,18 @@ describe('API:', function () {
       });
   });
   
+  it('should be possible to read an existing file', function (done) {
+    agent
+      .get('/test/tree/a.txt')
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.text.should.equal('A');
+	done();
+      });
+  });
+
   it('should return error when committing with no message', function (done) {
     agent
       .post('/test/commit')
@@ -172,6 +186,7 @@ describe('API:', function () {
       });
   });
 
+  var commitA;
   /* git commit -m 'A' */
   it('should be possible to commit staged changes', function (done) {
     agent
@@ -182,6 +197,7 @@ describe('API:', function () {
       .end(function (err, res) {
 	if (err) throw err;
 	should.not.exist(res.body.error);
+	commitA = res.body.sha1;
 	done();
       });
   });
@@ -214,9 +230,9 @@ describe('API:', function () {
       });
   });
 
-  /* echo B > a.txt && git add a.txt */
+  /* echo AA > a.txt && git add a.txt */
   it('should be possible to write to an existing file', function (done) {
-    uploadFile(agent, 'test', 'a.txt', 'B')
+    uploadFile(agent, 'test', 'a.txt', 'AA')
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
@@ -225,16 +241,34 @@ describe('API:', function () {
       });
   });
   
+  /* echo BB > b.txt && git add b.txt */
+  it('should be possible to write to an existing file', function (done) {
+    uploadFile(agent, 'test', 'b.txt', 'BB')
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	done();
+      });
+  });
+
+  var commitB;
   /* git commit -m 'B' */
   it('should be possible to commit staged changes', function (done) {
+    var message = 'wrote: AA -> a.txt, BB -> b.txt';
+
     agent
       .post('/test/commit')
-      .send({ message: "B" })
+      .send({ message: message })
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
 	should.not.exist(res.body.error);
+	res.body.branch.should.equal('test-br');
+	res.body.sha1.should.not.equal('');
+	res.body.title.should.equal(message);
+	commitB = res.body.sha1;
 	done();
       });
   });
@@ -249,6 +283,114 @@ describe('API:', function () {
       .end(function (err, res) {
 	if (err) throw err;
 	res.body.error.should.not.equal('');
+	done();
+      });
+  });
+
+  it('should be possible to read new file contents', function (done) {
+    agent
+      .get('/test/tree/b.txt')
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.text.should.equal('BB');
+	done();
+      });
+  });
+
+  it('should be possible to read changed file contents', function (done) {
+    agent
+      .get('/test/tree/a.txt')
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.text.should.equal('AA');
+	done();
+      });
+  });
+
+  it('should be possible to read changed file contents at HEAD', function (done) {
+    agent
+      .get('/test/show/a.txt?rev="HEAD"')
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.text.should.equal('AA');
+	done();
+      });
+  });
+
+  it('should be possible to read changed file contents at HEAD~', function (done) {
+    agent
+      .get('/test/show/a.txt?rev="HEAD~"')
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.text.should.equal('A');
+	done();
+      });
+  });
+
+  it('should be possible to read changed file contents at master', function (done) {
+    agent
+      .get('/test/show/a.txt?rev="master"')
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.text.should.equal('A');
+	done();
+      });
+  });
+
+  it('should be possible to read log', function (done) {
+    agent
+      .get('/test/log')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	res.body.should.be.an.instanceOf(Array);
+	done();
+      });
+  });
+
+  it('should be possible to see commit A details', function (done) {
+    agent
+      .get('/test/commit/' + commitA)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	res.body.sha1.should.startWith(commitA);
+	res.body.files.should.eql([
+	  { path: 'a.txt', action: 'added' },
+	]);
+	res.body.parents.should.eql([]);
+	res.body.title.should.eql('A');
+	done();
+      });
+  });
+
+  it('should be possible to see commit B details', function (done) {
+    agent
+      .get('/test/commit/' + commitB)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	res.body.sha1.should.startWith(commitB);
+	res.body.files.should.eql([
+	  { path: 'a.txt', action: 'changed' },
+	  { path: 'b.txt', action: 'added' },
+	]);
+	res.body.parents.should.be.an.Array.and.have.lengthOf(1);
+	res.body.parents[0].should.startWith(commitA);
+	res.body.title.should.eql('wrote: AA -> a.txt, BB -> b.txt');
 	done();
       });
   });

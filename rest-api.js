@@ -143,7 +143,7 @@ app.get(config.prefix + '/', function(req, res) {
  *   json: { "repo": <local-repo-name> }
  *
  * Response:
- *   json: {}
+ *   json: { "repo": <local repo name> }
  * Error:
  *   json: { "error": <error> }
  */
@@ -164,7 +164,7 @@ app.post(config.prefix + '/init', function(req, res) {
     .then(function() { return dfs.mkdir(repoDir); })
     .then(function() { return dgit('init', repoDir); })
     .then(
-      function() { res.json(200, {}); },
+      function() { res.json(200, { repo: repo }); },
       function(err) { res.json(400, { error: err }); }
     );
 });
@@ -175,7 +175,7 @@ app.post(config.prefix + '/init', function(req, res) {
  * { "remote": <remote-url> (, "repo": <local-repo-name>) }
  *
  * Response:
- *   json: {}
+ *   json: { "repo": <local repo name> }
  * Error:
  *   json: { "error": <error> }
  */
@@ -204,7 +204,7 @@ app.post(config.prefix + '/clone', function(req, res) {
       return dgit('clone ' + remote.address + ' ' + repo, workDir);
     })
     .then(
-      function() { res.json(200, {}); },
+      function() { res.json(200, { repo: repo }); },
       function(err) { res.json(400, { error: err }); }
     );
 });
@@ -215,7 +215,7 @@ app.post(config.prefix + '/clone', function(req, res) {
  *  { "branch": <branch name> }
  *
  * Response:
- *   json: {}
+ *   json: { "branch": <branch name> }
  * Error:
  *   json: { "error": <error> }
  */
@@ -231,7 +231,7 @@ app.post(config.prefix + '/:repo/branch', function(req, res) {
 
   dgit('branch ' + branch, workDir)
     .then(
-      function() { res.json(200, {}); },
+      function() { res.json(200, { branch: branch }); },
       function(err) { res.json(400, { error: err }); }
     );
 });
@@ -242,7 +242,7 @@ app.post(config.prefix + '/:repo/branch', function(req, res) {
  *  { "branch": <branch name> }
  *
  * Response:
- *   json: {}
+ *   json: { "branch": <branch name> }
  * Error:
  *   json: { "error": <error> }
  */
@@ -264,7 +264,7 @@ app.post(config.prefix + '/:repo/checkout', function(req, res) {
       return dgit('checkout ' + branch, workDir);
     })
     .then(
-      function() { res.json(200, {}); },
+      function() { res.json(200, { branch: branch }); },
       function(err) { res.json(400, { error: err }); }
     );
 });
@@ -273,7 +273,7 @@ app.post(config.prefix + '/:repo/checkout', function(req, res) {
  *  `rev` -- can be any legal revision
  * 
  * Response:
- *   json: {}
+ *   <file contents>
  * Error:
  *   json: { "error": <error> }
  */
@@ -284,7 +284,7 @@ app.get(config.prefix + '/:repo/show/*', [getFilePath, getRevision], function(re
 
   dgit('show ' + rev + ':' + file, workDir)
     .then(
-      function(data) { res.json(200, {}); },
+      function(data) { res.send(200, data); },
       function(err) { res.json(400, { error: err }); }
     );
 });
@@ -297,7 +297,7 @@ app.get(config.prefix + '/:repo/show/*', [getFilePath, getRevision], function(re
  *     ({
  *       "name": <name>,
  *       "mode": <mode>,
- *       "sha": <sha>,
+ *       "sha1": <sha>,
  *       "type": ("blob" or "tree"),
  *       "contents": (for trees only),
  *     })*
@@ -325,7 +325,7 @@ app.get(config.prefix + '/:repo/ls-tree/*', [getFilePath, getRevision], function
  * 
  * Response:
  *   json: {
- *     "sha": <commit sha1 hash string>,
+ *     "sha1": <commit sha1 hash string>,
  *     "parents": [ (<parent sha1 hash string>)* ],
  *     "isMerge": <commit is a merge>,
  *     "author": <author>,
@@ -355,6 +355,26 @@ app.get(config.prefix + '/:repo/commit/:commit', function(req, res) {
     );
 });
 
+/* GET /:repo/log
+ * 
+ * Response:
+ *   json: {
+ *   }
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.get(config.prefix + '/:repo/log', function(req, res) {
+  var message = req.body.message;
+  var workDir = req.git.tree.workDir;
+
+  console.log('log');
+  dgit('log  --decorate=full --pretty=fuller --all --parents', workDir,
+    gitParser.parseGitLog).then(
+      function (log) { res.json(200, log); },
+      function (err) { res.json(400, { error: err.stdout }); }
+    );
+});
+
 /* POST /:repo/commit
  * 
  * Request:
@@ -363,7 +383,7 @@ app.get(config.prefix + '/:repo/commit/:commit', function(req, res) {
  * Response:
  *   json: {
  *     "branch": <branch name>,
- *     "commit": <commit sha>,
+ *     "sha1": <commit sha>,
  *     "title": <commit title>
  *   }
  * Error:
@@ -379,7 +399,7 @@ app.post(config.prefix + '/:repo/commit', function(req, res) {
     return;
   }
 
-  dgit('commit -m ' + message , workDir, gitParser.parseCommit)
+  dgit('commit -m "' + message + '"', workDir, gitParser.parseCommit)
     .then(
       function (commit) { res.json(200, commit); },
       function (err) { res.json(400, { error: err.stdout }); }
