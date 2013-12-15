@@ -338,6 +338,36 @@ app.post(config.prefix + '/:repo/checkout',
     );
 });
 
+/* POST /:repo/mv
+ * 
+ * Request:
+ *  json: {
+ *    "source": <path>,
+ *    "destination": <path>
+ *  }
+ *
+ * Response:
+ *   json: { "branch": <branch name> }
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post(config.prefix + '/:repo/mv',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+  var src = req.body.source;
+  var dst = req.body.destination;
+
+  console.log('move: ', src, '->', dst);
+
+  dgit('mv ' + src + ' ' + dst, workDir)
+    .then(
+      function() { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
+});
+
 /* GET /:repo/show/<path>?rev=<revision>
  *  `rev` -- can be any legal revision
  * 
