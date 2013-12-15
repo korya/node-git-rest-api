@@ -209,6 +209,32 @@ app.post(config.prefix + '/clone', function(req, res) {
     );
 });
 
+/* GET /:repo/branch
+ *
+ * Response:
+ *   json: {
+ *     [
+ *       ({
+ *         "name": <branch name>,
+ *         "current": (true or false)
+ *       })*
+ *     ]
+ *   }
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.get(config.prefix + '/:repo/branch', function(req, res) {
+  var workDir = req.git.tree.workDir;
+
+  console.log('list branches');
+
+  dgit('branch --list', workDir, gitParser.parseGitBranches)
+    .then(
+      function(branches) { res.json(200, branches); },
+      function(err) { res.json(400, { error: err }); }
+    );
+});
+
 /* POST /:repo/branch
  * 
  * Request:

@@ -202,6 +202,21 @@ describe('API:', function () {
       });
   });
 
+  it('should return a correct branch list', function (done) {
+    agent
+      .get('/test/branch')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.should.eql([
+	  { name: 'master', current: true },
+	]);
+	done();
+      });
+  });
+
   /* git branch 'test-br' */
   it('should be possible to create a new branch', function (done) {
     agent
@@ -226,6 +241,22 @@ describe('API:', function () {
       .end(function (err, res) {
 	if (err) throw err;
 	should.not.exist(res.body.error);
+	done();
+      });
+  });
+
+  it('should return an updated branch list', function (done) {
+    agent
+      .get('/test/branch')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.should.eql([
+	  { name: 'master' },
+	  { name: 'test-br', current: true },
+	]);
 	done();
       });
   });
