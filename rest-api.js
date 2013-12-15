@@ -221,6 +221,28 @@ app.post(config.prefix + '/clone',
     );
 });
 
+/* DELETE /:repo
+ *
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.delete(config.prefix + '/:repo',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+
+  console.log('delete repo:', req.git.tree.repo);
+
+  dfs.rmrfdir(workDir)
+    .then(
+      function() { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
+});
+
 /* GET /:repo/branch
  *
  * Response:

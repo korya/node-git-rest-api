@@ -108,12 +108,34 @@ describe('API:', function () {
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
-	console.log(res.body);
 	res.body.should.eql(["test", "test-clone"]);
 	done();
       });
   });
 
+  it('should remove existing local repo', function (done) {
+    agent
+      .del('/test-clone')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	res.body.should.eql({});
+	done();
+      });
+  });
+
+  it('should return the remaining local repo', function (done) {
+    agent
+      .get('/')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	res.body.should.eql(["test"]);
+	done();
+      });
+  });
   function uploadFile(agent, repo, filepath, content) {
     var boundary = Math.random();
 
