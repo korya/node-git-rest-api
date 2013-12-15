@@ -71,18 +71,13 @@ function getRepoName(val) {
   return match ? match[0] : null;
 }
 
-function getRepo(req, res, next, val) {
-  var repo, workDir;
-
-  repo = getRepoName(val);
-  if (!repo) {
-    res.json(400, { error: "Illegal repo name: " + val });
-    return;
-  }
+function getRepo(req, res, next) {
+  var workDir;
+  var repo = req.params.repo;
 
   workDir = req.git.workDir + '/' + repo;
   if (!fs.existsSync(workDir)) {
-    res.json(400, { error: "Unknown repo: " + val });
+    res.json(400, { error: "Unknown repo: " + repo });
     return;
   }
 
@@ -115,10 +110,15 @@ function getRevision(req, res, next) {
   next();
 }
 
-app.use(prepareGitVars);
-app.use(getWorkdir);
 app.param('commit', /^[a-f0-9]{5,40}$/i);
-app.param('repo', getRepo);
+app.param('repo', function (req, res, next, val) {
+  console.log('repo:', val);
+  if (!getRepoName(val)) {
+    res.json(400, { error: "Illegal repo name: " + val });
+    return;
+  }
+  next();
+});
 
 /* GET /
  *
@@ -127,7 +127,10 @@ app.param('repo', getRepo);
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/', function(req, res) {
+app.get(config.prefix + '/',
+  [prepareGitVars, getWorkdir],
+  function(req, res)
+{
   var deferred = Q.defer();
   console.log('list repositories');
   dfs.readdir(req.git.workDir)
@@ -147,8 +150,11 @@ app.get(config.prefix + '/', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/init', function(req, res) {
-  console.log('init repo:', req.body.repo);
+app.post(config.prefix + '/init',
+  [prepareGitVars, getWorkdir],
+  function(req, res)
+{
+  console.log('init repo:', req.body.repo, ';', req.git);
 
   if (!getRepoName(req.body.repo)) {
       res.json(400, { error: 'Invalid repo name: ' + req.body.repo });
@@ -179,7 +185,10 @@ app.post(config.prefix + '/init', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/clone', function(req, res) {
+app.post(config.prefix + '/clone',
+  [prepareGitVars, getWorkdir],
+  function(req, res)
+{
   console.log('clone repo:', req.body.remote);
 
   if (!req.body.remote) {
@@ -223,7 +232,10 @@ app.post(config.prefix + '/clone', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/branch', function(req, res) {
+app.get(config.prefix + '/:repo/branch',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
 
   console.log('list branches');
@@ -245,7 +257,10 @@ app.get(config.prefix + '/:repo/branch', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/branch', function(req, res) {
+app.post(config.prefix + '/:repo/branch',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
   var branch = req.body.branch;
 
@@ -272,7 +287,10 @@ app.post(config.prefix + '/:repo/branch', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/checkout', function(req, res) {
+app.post(config.prefix + '/:repo/checkout',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
   var branch = req.body.branch;
 
@@ -303,7 +321,10 @@ app.post(config.prefix + '/:repo/checkout', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/show/*', [getFilePath, getRevision], function(req, res) {
+app.get(config.prefix + '/:repo/show/*',
+  [prepareGitVars, getWorkdir, getRepo, getFilePath, getRevision],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
@@ -331,7 +352,10 @@ app.get(config.prefix + '/:repo/show/*', [getFilePath, getRevision], function(re
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/ls-tree/*', [getFilePath, getRevision], function(req, res) {
+app.get(config.prefix + '/:repo/ls-tree/*',
+  [prepareGitVars, getWorkdir, getRepo, getFilePath, getRevision],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
@@ -369,7 +393,10 @@ app.get(config.prefix + '/:repo/ls-tree/*', [getFilePath, getRevision], function
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/commit/:commit', function(req, res) {
+app.get(config.prefix + '/:repo/commit/:commit',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
   var commit = req.params.commit[0];
 
@@ -389,7 +416,10 @@ app.get(config.prefix + '/:repo/commit/:commit', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/log', function(req, res) {
+app.get(config.prefix + '/:repo/log',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
   var message = req.body.message;
   var workDir = req.git.tree.workDir;
 
@@ -415,7 +445,10 @@ app.get(config.prefix + '/:repo/log', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/commit', function(req, res) {
+app.post(config.prefix + '/:repo/commit',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
   var message = req.body.message;
   var workDir = req.git.tree.workDir;
 
@@ -439,7 +472,10 @@ app.post(config.prefix + '/:repo/commit', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/push', function(req, res) {
+app.post(config.prefix + '/:repo/push',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
   dgit('push', workDir)
     .then(
       function (obj) { res.json(200, obj); },
@@ -459,7 +495,10 @@ app.post(config.prefix + '/:repo/push', function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
+app.get(config.prefix + '/:repo/tree/*',
+  [prepareGitVars, getWorkdir, getRepo, getFilePath],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
   var file = req.git.file.path;
   var fileFullPath = path.join(workDir, file);
@@ -491,7 +530,10 @@ app.get(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.put(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
+app.put(config.prefix + '/:repo/tree/*',
+  [prepareGitVars, getWorkdir, getRepo, getFilePath],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
   var file = req.git.file.path;
   var fileFullPath = path.join(workDir, file);
@@ -532,7 +574,10 @@ app.put(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
  * Error:
  *   json: { "error": <error> }
  */
-app.delete(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
+app.delete(config.prefix + '/:repo/tree/*',
+  [prepareGitVars, getWorkdir, getRepo, getFilePath],
+  function(req, res)
+{
   var workDir = req.git.tree.workDir;
   var file = req.git.file.path;
 

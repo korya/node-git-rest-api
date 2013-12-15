@@ -200,11 +200,9 @@ describe('API:', function () {
     it('GET /:repo/commit/:commit should reply with error', function (done) {
       request(URL)
 	.get('/repo/commit/commit')
-	.expect('Content-Type', /json/)
-        .expect(400)
+        .expect(404)
         .end(function (err, res) {
 	  if (err) throw err;
-	  res.body.error.should.not.equal('');
 	  done();
 	});
     });
