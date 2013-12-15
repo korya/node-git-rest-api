@@ -1,5 +1,4 @@
 var express = require('express'),
-    params = require('express-params'),
     fs = require('fs'),
     path = require('path'),
     temp = require('temp'),
@@ -29,9 +28,6 @@ exports.init = function(app, config) {
 
 mergeConfigs(config, defaultConfig);
 config.prefix = config.prefix.replace(/\/*$/, '');
-
-/* XXX Should be replaced */
-params.extend(app);
 
 if (config.installMiddleware) {
   app.use(express.bodyParser({ uploadDir: '/tmp', keepExtensions: true }));
@@ -110,7 +106,14 @@ function getRevision(req, res, next) {
   next();
 }
 
-app.param('commit', /^[a-f0-9]{5,40}$/i);
+app.param('commit', function (req, res, next, val) {
+  var match = /^[a-f0-9]{5,40}$/i.exec(String(val));
+  if (!match) {
+    res.json(400, { error: "Illegal commit name: " + val });
+    return;
+  }
+  next();
+});
 app.param('repo', function (req, res, next, val) {
   console.log('repo:', val);
   if (!getRepoName(val)) {
@@ -398,7 +401,7 @@ app.get(config.prefix + '/:repo/commit/:commit',
   function(req, res)
 {
   var workDir = req.git.tree.workDir;
-  var commit = req.params.commit[0];
+  var commit = req.params.commit;
 
   console.log('get commit info: ', commit, ', workDir:', workDir);
   dgit('show --decorate=full --pretty=fuller --parents ' + commit, workDir,
