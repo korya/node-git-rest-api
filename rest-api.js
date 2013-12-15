@@ -518,11 +518,9 @@ app.delete(config.prefix + '/:repo/tree/*', getFilePath, function(req, res) {
     );
 });
 
-if (!fs.existsSync(config.tmpDir)) {
-  console.log('Creating temp dir', config.tmpDir);
-  mkdirp.sync(config.tmpDir, 0755, function(err) {
-    if (err) { console.err(err); process.exit(1); }
+return dfs.exists(config.tmpDir)
+  .then(function (exists) {
+    if (exists) return;
+    return dfs.mkdirp(config.tmpDir, 0755);
   });
-}
-
 } /* exports.init */

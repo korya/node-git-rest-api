@@ -7,7 +7,9 @@ api.init(app, {
   prefix: process.env['PREFIX'],
   tmpDir: process.env['TMPDIR'],
   installMiddleware: true,
+}).then(function () {
+  app.listen(PORT);
+  console.log('Listening on', PORT);
+}, function (err) {
+  console.error(err);
 });
-
-app.listen(PORT);
-console.log('Listening on', PORT);
