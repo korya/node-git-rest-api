@@ -137,6 +137,41 @@ describe('API:', function () {
    * Working on "test" repo
    */
 
+  var initCommit;
+
+  /* git commit -m 'empty commit' */
+  it('should not be possible to commit when nothing is staged', function (done) {
+    agent
+      .post('/test/commit')
+      .send({ message: 'empty commit' })
+      .expect('Content-Type', /json/)
+      .expect(400)
+      .end(function (err, res) {
+	if (err) throw err;
+	res.body.error.should.not.equal('');
+	done();
+      });
+  });
+
+  /* git commit -m 'initial commit' --allow-empty */
+  it('should allow empty commit when explicitly specified', function (done) {
+    var message = 'initial commit';
+    agent
+      .post('/test/commit')
+      .send({ message: message, 'allow-empty': true })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.branch.should.equal('master');
+	res.body.sha1.should.not.equal('');
+	res.body.title.should.equal(message);
+	initCommit = res.body.sha1;
+	done();
+      });
+  });
+
   /* echo A > a.txt && git add a.txt */
   it('should be possible to write to a new file', function (done) {
     uploadFile(agent, 'test', 'a.txt', 'A')
@@ -304,20 +339,6 @@ describe('API:', function () {
       });
   });
 
-  /* git commit -m 'B' */
-  it('should not be possible to commit when nothing is staged', function (done) {
-    agent
-      .post('/test/commit')
-      .send({ message: "B" })
-      .expect('Content-Type', /json/)
-      .expect(400)
-      .end(function (err, res) {
-	if (err) throw err;
-	res.body.error.should.not.equal('');
-	done();
-      });
-  });
-
   it('should be possible to read new file contents', function (done) {
     agent
       .get('/test/tree/b.txt')
@@ -401,7 +422,7 @@ describe('API:', function () {
 	res.body.files.should.eql([
 	  { path: 'a.txt', action: 'added' },
 	]);
-	res.body.parents.should.eql([]);
+	res.body.parents[0].should.startWith(initCommit);
 	res.body.title.should.eql('A');
 	done();
       });

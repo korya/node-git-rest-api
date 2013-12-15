@@ -437,7 +437,10 @@ app.get(config.prefix + '/:repo/log',
 /* POST /:repo/commit
  * 
  * Request:
- *  { "message": <commit message> }
+ *  json: {
+ *    "allow-empty": (true or false),
+ *    "message": <commit message>
+ *  }
  *
  * Response:
  *   json: {
@@ -454,6 +457,7 @@ app.post(config.prefix + '/:repo/commit',
 {
   var message = req.body.message;
   var workDir = req.git.tree.workDir;
+  var cmdOptions = '';
 
   console.log('commit message:', message);
   if (!message) {
@@ -461,7 +465,10 @@ app.post(config.prefix + '/:repo/commit',
     return;
   }
 
-  dgit('commit -m "' + message + '"', workDir, gitParser.parseCommit)
+  cmdOptions = '-m "' + message + '"';
+  if (req.body['allow-empty']) cmdOptions += ' --allow-empty';
+
+  dgit('commit ' + cmdOptions, workDir, gitParser.parseCommit)
     .then(
       function (commit) { res.json(200, commit); },
       function (err) { res.json(400, { error: err.stdout }); }
