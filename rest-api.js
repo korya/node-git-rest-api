@@ -437,7 +437,6 @@ app.get(config.prefix + '/:repo/ls-tree/*',
  *     "authorDate": <author date>,
  *     "committer": <committer>,
  *     "commitDate": <commit date>,
- *     "title": <commit title>,
  *     "message": <commit message>,
  *     "file": [
  *       "action": ("added", "removed" or "changed"),

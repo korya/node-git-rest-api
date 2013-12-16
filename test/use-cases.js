@@ -445,7 +445,7 @@ describe('API:', function () {
 	  { path: 'a.txt', action: 'added' },
 	]);
 	res.body.parents[0].should.startWith(initCommit);
-	res.body.title.should.eql('A');
+	res.body.message.should.eql('A');
 	done();
       });
   });
@@ -464,7 +464,7 @@ describe('API:', function () {
 	]);
 	res.body.parents.should.be.an.Array.and.have.lengthOf(1);
 	res.body.parents[0].should.startWith(commitA);
-	res.body.title.should.eql('wrote: AA -> a.txt, BB -> b.txt');
+	res.body.message.should.eql('wrote: AA -> a.txt, BB -> b.txt');
 	done();
       });
   });
@@ -529,7 +529,7 @@ describe('API:', function () {
 	]);
 	res.body.parents.should.be.an.Array.and.have.lengthOf(1);
 	res.body.parents[0].should.startWith(commitB);
-	res.body.title.should.eql('AAA -> a.txt, remove b.txt');
+	res.body.message.should.eql('AAA -> a.txt, remove b.txt');
 	done();
       });
   });
