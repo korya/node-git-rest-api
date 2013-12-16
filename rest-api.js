@@ -651,7 +651,15 @@ app.delete(config.prefix + '/:repo/tree/*',
     );
 });
 
-return dfs.exists(config.tmpDir)
+return dgit('--version', '.')
+  .then(function(data) {
+    console.error(' ++++ ', data);
+  }, function (err) {
+    console.error('git version: error:', err);
+  })
+  .then(function () {
+    return dfs.exists(config.tmpDir);
+  })
   .then(function (exists) {
     if (exists) return;
     return dfs.mkdirp(config.tmpDir, 0755);
