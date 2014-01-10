@@ -146,8 +146,11 @@ app.get(config.prefix + '/',
 /* POST /init
  * 
  * Request:
- *   json: { "repo": <local-repo-name> }
- *
+ *   json: {
+ *     "repo": <local-repo-name>,
+ *     ("bare": <bool, --bare>,)
+ *     ("shared": <bool, --share>,)
+ *   }
  * Response:
  *   json: { "repo": <local repo name> }
  * Error:
@@ -157,22 +160,26 @@ app.post(config.prefix + '/init',
   [prepareGitVars, getWorkdir],
   function(req, res)
 {
-  console.log('init repo:', req.body.repo, ';', req.git);
+  var repo = req.body.repo;
+  var bare = req.body.bare ? '--bare' : '';
+  var shared = req.body.shared ? '--shared' : '';
 
-  if (!getRepoName(req.body.repo)) {
+  console.log('init repo:', repo, bare, shared, ';', req.git);
+
+  if (!getRepoName(repo)) {
       res.json(400, { error: 'Invalid repo name: ' + req.body.repo });
       return;
   }
 
-  var repo = req.body.repo;
   var repoDir = path.join(req.git.workDir, repo);
   dfs.exists(repoDir)
     .then(function (exists) {
       if (exists) return Q.reject('A repository ' + repo + ' already exists');
     })
     .then(function() { return dfs.mkdir(repoDir); })
-    .then(function() { return dgit('init', repoDir); })
-    .then(
+    .then(function() {
+      return dgit('init ' + bare + ' ' + shared, repoDir);
+    }).then(
       function() { res.json(200, { repo: repo }); },
       function(err) { res.json(400, { error: err }); }
     );
