@@ -535,6 +535,8 @@ app.post(config.prefix + '/repo/:repo/commit',
 
 /* POST /repo/:repo/push
  * 
+ * Request:
+ *   json: { ({"remote": <remote name>, "branch": <branch name>}) }
  * Response:
  *   json: {}
  * Error:
@@ -544,7 +546,11 @@ app.post(config.prefix + '/repo/:repo/push',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  dgit('push', workDir)
+  var workDir = req.git.tree.workDir;
+  var remote = req.body.remote || 'origin';
+  var branch = req.body.branch || '';
+
+  dgit('push ' + remote + ' ' + branch, workDir)
     .then(
       function (obj) { res.json(200, obj); },
       function (err) { res.json(400, { error: err }); }
