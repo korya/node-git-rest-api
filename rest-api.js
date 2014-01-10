@@ -250,7 +250,92 @@ app.delete(config.prefix + '/repo/:repo',
     );
 });
 
-/* GET /:repo/branch
+/* GET /repo/:repo/remote
+ *
+ * Response:
+ *   json: {
+ *     [
+ *       ({
+ *         "name": <remote name>,
+ *         "url": <remote URL>
+ *       })*
+ *     ]
+ *   }
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.get(config.prefix + '/repo/:repo/remote',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+
+  console.log('list remotes');
+
+  dgit('remote -v', workDir, gitParser.parseGitRemotes)
+    .then(
+      function(remotes) { res.json(200, remotes); },
+      function(err) { res.json(400, { error: err }); }
+    );
+});
+
+/* POST /repo/:repo/remote
+ *
+ * Request:
+ *   json: {
+ *     "name": <remote name>,
+ *     "url": <remote URL>
+ *   }
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post(config.prefix + '/repo/:repo/remote',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+  var name = req.body.name;
+  var url = req.body.url;
+
+  console.log('add remote', name, url);
+
+  dgit('remote add ' + name + ' ' + url, workDir)
+    .then(
+      function() { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
+});
+
+/* DELETE /repo/:repo/remote
+ *
+ * Request:
+ *   json: {
+ *     "name": <remote name>
+ *   }
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.delete(config.prefix + '/repo/:repo/remote',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+  var name = req.body.name;
+
+  console.log('rem remote', name);
+
+  dgit('remote remove ' + name, workDir)
+    .then(
+      function() { res.json(200, {}); },
+      function(err) { res.json(400, { error: err }); }
+    );
+});
+
+/* GET /repo/:repo/branch
  *
  * Response:
  *   json: {
