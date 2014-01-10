@@ -137,7 +137,7 @@ describe('API:', function () {
 
     it('GET /:repo/branch should reply with error', function (done) {
       request(URL)
-	.get('/repo/branch')
+	.get('/repo/repo/branch')
 	.expect('Content-Type', /json/)
         .expect(400)
         .end(function (err, res) {
@@ -149,7 +149,7 @@ describe('API:', function () {
 
     it('POST /:repo/branch should reply with error', function (done) {
       request(URL)
-	.post('/repo/branch')
+	.post('/repo/repo/branch')
         .send()
 	.expect('Content-Type', /json/)
         .expect(400)
@@ -162,7 +162,7 @@ describe('API:', function () {
 
     it('POST /:repo/checkout should reply with error', function (done) {
       request(URL)
-	.post('/repo/checkout')
+	.post('/repo/repo/checkout')
         .send()
 	.expect('Content-Type', /json/)
         .expect(400)
@@ -175,7 +175,7 @@ describe('API:', function () {
 
     it('GET /:repo/show/:path should reply with error', function (done) {
       request(URL)
-	.get('/repo/show/path')
+	.get('/repo/repo/show/path')
 	.expect('Content-Type', /json/)
         .expect(400)
         .end(function (err, res) {
@@ -187,7 +187,7 @@ describe('API:', function () {
 
     it('GET /:repo/ls-tree/:path should reply with error', function (done) {
       request(URL)
-	.get('/repo/ls-tree/path')
+	.get('/repo/repo/ls-tree/path')
 	.expect('Content-Type', /json/)
         .expect(400)
         .end(function (err, res) {
@@ -199,7 +199,7 @@ describe('API:', function () {
 
     it('GET /:repo/commit/:commit should reply with error', function (done) {
       request(URL)
-	.get('/repo/commit/commit')
+	.get('/repo/repo/commit/commit')
 	.expect('Content-Type', /json/)
         .expect(400)
         .end(function (err, res) {
@@ -211,7 +211,7 @@ describe('API:', function () {
 
     it('POST /:repo/commit should reply with error', function (done) {
       request(URL)
-	.post('/repo/commit')
+	.post('/repo/repo/commit')
         .send()
 	.expect('Content-Type', /json/)
         .expect(400)
@@ -224,7 +224,7 @@ describe('API:', function () {
 
     it('POST /:repo/push should reply with error', function (done) {
       request(URL)
-	.post('/repo/push')
+	.post('/repo/repo/push')
         .send()
 	.expect('Content-Type', /json/)
         .expect(400)
@@ -237,7 +237,7 @@ describe('API:', function () {
 
     it('GET /:repo/tree/:path should reply with error', function (done) {
       request(URL)
-	.get('/repo/tree/path')
+	.get('/repo/repo/tree/path')
 	.expect('Content-Type', /json/)
         .expect(400)
         .end(function (err, res) {
@@ -249,7 +249,7 @@ describe('API:', function () {
 
     it('PUT /:repo/tree/:path should reply with error', function (done) {
       request(URL)
-	.put('/repo/tree/path')
+	.put('/repo/repo/tree/path')
         .send()
 	.expect('Content-Type', /json/)
         .expect(400)
@@ -262,7 +262,7 @@ describe('API:', function () {
 
     it('DELETE /:repo/tree/:path should reply with error', function (done) {
       request(URL)
-	.del('/repo/tree/path')
+	.del('/repo/repo/tree/path')
         .send()
 	.expect('Content-Type', /json/)
         .expect(400)

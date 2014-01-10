@@ -115,7 +115,7 @@ describe('API:', function () {
 
   it('should remove existing local repo', function (done) {
     agent
-      .del('/test-clone')
+      .del('/repo/test-clone')
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
@@ -150,7 +150,7 @@ describe('API:', function () {
       return str;
     }
 
-    return agent.put('/' + repo + '/tree/' + filepath)
+    return agent.put('/repo/' + repo + '/tree/' + filepath)
       .set('Content-Type', 'multipart/form-data; boundary=' + boundary)
       .send(wrapContent(boundary, path.basename(filepath), content));
   }
@@ -164,7 +164,7 @@ describe('API:', function () {
   /* git commit -m 'empty commit' */
   it('should not be possible to commit when nothing is staged', function (done) {
     agent
-      .post('/test/commit')
+      .post('/repo/test/commit')
       .send({ message: 'empty commit' })
       .expect('Content-Type', /json/)
       .expect(400)
@@ -179,7 +179,7 @@ describe('API:', function () {
   it('should allow empty commit when explicitly specified', function (done) {
     var message = 'initial commit';
     agent
-      .post('/test/commit')
+      .post('/repo/test/commit')
       .send({ message: message, 'allow-empty': true })
       .expect('Content-Type', /json/)
       .expect(200)
@@ -207,7 +207,7 @@ describe('API:', function () {
   
   it('should be possible to read an existing file', function (done) {
     agent
-      .get('/test/tree/a.txt')
+      .get('/repo/test/tree/a.txt')
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
@@ -219,7 +219,7 @@ describe('API:', function () {
 
   it('should return error when committing with no message', function (done) {
     agent
-      .post('/test/commit')
+      .post('/repo/test/commit')
       .send()
       .expect('Content-Type', /json/)
       .expect(400)
@@ -232,7 +232,7 @@ describe('API:', function () {
 
   it('should return error when committing with empty message', function (done) {
     agent
-      .post('/test/commit')
+      .post('/repo/test/commit')
       .send({ message: "" })
       .expect('Content-Type', /json/)
       .expect(400)
@@ -247,7 +247,7 @@ describe('API:', function () {
   /* git commit -m 'A' */
   it('should be possible to commit staged changes', function (done) {
     agent
-      .post('/test/commit')
+      .post('/repo/test/commit')
       .send({ message: "A" })
       .expect('Content-Type', /json/)
       .expect(200)
@@ -261,7 +261,7 @@ describe('API:', function () {
 
   it('should return a correct branch list', function (done) {
     agent
-      .get('/test/branch')
+      .get('/repo/test/branch')
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
@@ -277,7 +277,7 @@ describe('API:', function () {
   /* git branch 'test-br' */
   it('should be possible to create a new branch', function (done) {
     agent
-      .post('/test/branch')
+      .post('/repo/test/branch')
       .send({ branch: "test-br" })
       .expect('Content-Type', /json/)
       .expect(200)
@@ -291,7 +291,7 @@ describe('API:', function () {
   /* git checkout 'test-br' */
   it('should be possible to checkout a different branch', function (done) {
     agent
-      .post('/test/checkout')
+      .post('/repo/test/checkout')
       .send({ branch: "test-br" })
       .expect('Content-Type', /json/)
       .expect(200)
@@ -304,7 +304,7 @@ describe('API:', function () {
 
   it('should return an updated branch list', function (done) {
     agent
-      .get('/test/branch')
+      .get('/repo/test/branch')
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
@@ -346,7 +346,7 @@ describe('API:', function () {
     var message = 'wrote: AA -> a.txt, BB -> b.txt';
 
     agent
-      .post('/test/commit')
+      .post('/repo/test/commit')
       .send({ message: message })
       .expect('Content-Type', /json/)
       .expect(200)
@@ -363,7 +363,7 @@ describe('API:', function () {
 
   it('should be possible to read new file contents', function (done) {
     agent
-      .get('/test/tree/b.txt')
+      .get('/repo/test/tree/b.txt')
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
@@ -375,7 +375,7 @@ describe('API:', function () {
 
   it('should be possible to read changed file contents', function (done) {
     agent
-      .get('/test/tree/a.txt')
+      .get('/repo/test/tree/a.txt')
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
@@ -387,7 +387,7 @@ describe('API:', function () {
 
   it('should be possible to read changed file contents at HEAD', function (done) {
     agent
-      .get('/test/show/a.txt?rev="HEAD"')
+      .get('/repo/test/show/a.txt?rev="HEAD"')
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
@@ -399,7 +399,7 @@ describe('API:', function () {
 
   it('should be possible to read changed file contents at HEAD~', function (done) {
     agent
-      .get('/test/show/a.txt?rev="HEAD~"')
+      .get('/repo/test/show/a.txt?rev="HEAD~"')
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
@@ -411,7 +411,7 @@ describe('API:', function () {
 
   it('should be possible to read changed file contents at master', function (done) {
     agent
-      .get('/test/show/a.txt?rev="master"')
+      .get('/repo/test/show/a.txt?rev="master"')
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
@@ -423,7 +423,7 @@ describe('API:', function () {
 
   it('should be possible to read log', function (done) {
     agent
-      .get('/test/log')
+      .get('/repo/test/log')
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
@@ -435,7 +435,7 @@ describe('API:', function () {
 
   it('should be possible to see commit A details', function (done) {
     agent
-      .get('/test/commit/' + commitA)
+      .get('/repo/test/commit/' + commitA)
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
@@ -452,7 +452,7 @@ describe('API:', function () {
 
   it('should be possible to see commit B details', function (done) {
     agent
-      .get('/test/commit/' + commitB)
+      .get('/repo/test/commit/' + commitB)
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
@@ -483,7 +483,7 @@ describe('API:', function () {
   /* git rm b.txt */
   it('should be possible to remove an existing file', function (done) {
     agent
-      .del('/test/tree/b.txt')
+      .del('/repo/test/tree/b.txt')
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
@@ -500,7 +500,7 @@ describe('API:', function () {
     var message = 'AAA -> a.txt, remove b.txt';
 
     agent
-      .post('/test/commit')
+      .post('/repo/test/commit')
       .send({ message: message })
       .expect('Content-Type', /json/)
       .expect(200)
@@ -517,7 +517,7 @@ describe('API:', function () {
 
   it('should be possible to see commit C details', function (done) {
     agent
-      .get('/test/commit/' + commitC)
+      .get('/repo/test/commit/' + commitC)
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {

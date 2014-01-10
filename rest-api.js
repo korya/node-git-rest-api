@@ -84,10 +84,10 @@ function getRepo(req, res, next) {
 }
 
 function getFilePath(req, res, next) {
-  // Path form: <PREFIX>/<repo>/tree/<path>
-  //               0        1     2     3
+  // Path form: <PREFIX>/repo/<repo>/tree/<path>
+  //               0      1     2     3     4
   var pathNoPrefix = req.path.substr(config.prefix.length);
-  var filePath = pathNoPrefix.split('/').slice(3).join(path.sep);
+  var filePath = pathNoPrefix.split('/').slice(4).join(path.sep);
 
   console.log('path: ', filePath)
   /* get rid of trailing slash */
@@ -221,14 +221,14 @@ app.post(config.prefix + '/clone',
     );
 });
 
-/* DELETE /:repo
+/* DELETE /repo/:repo
  *
  * Response:
  *   json: {}
  * Error:
  *   json: { "error": <error> }
  */
-app.delete(config.prefix + '/:repo',
+app.delete(config.prefix + '/repo/:repo',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -257,7 +257,7 @@ app.delete(config.prefix + '/:repo',
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/branch',
+app.get(config.prefix + '/repo/:repo/branch',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -272,7 +272,7 @@ app.get(config.prefix + '/:repo/branch',
     );
 });
 
-/* POST /:repo/branch
+/* POST /repo/:repo/branch
  * 
  * Request:
  *  { "branch": <branch name> }
@@ -282,7 +282,7 @@ app.get(config.prefix + '/:repo/branch',
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/branch',
+app.post(config.prefix + '/repo/:repo/branch',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -302,7 +302,7 @@ app.post(config.prefix + '/:repo/branch',
     );
 });
 
-/* POST /:repo/checkout
+/* POST /repo/:repo/checkout
  * 
  * Request:
  *  { "branch": <branch name> }
@@ -312,7 +312,7 @@ app.post(config.prefix + '/:repo/branch',
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/checkout',
+app.post(config.prefix + '/repo/:repo/checkout',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -338,7 +338,7 @@ app.post(config.prefix + '/:repo/checkout',
     );
 });
 
-/* POST /:repo/mv
+/* POST /repo/:repo/mv
  * 
  * Request:
  *  json: {
@@ -351,7 +351,7 @@ app.post(config.prefix + '/:repo/checkout',
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/mv',
+app.post(config.prefix + '/repo/:repo/mv',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -368,7 +368,7 @@ app.post(config.prefix + '/:repo/mv',
     );
 });
 
-/* GET /:repo/show/<path>?rev=<revision>
+/* GET /repo/:repo/show/<path>?rev=<revision>
  *  `rev` -- can be any legal revision
  * 
  * Response:
@@ -376,7 +376,7 @@ app.post(config.prefix + '/:repo/mv',
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/show/*',
+app.get(config.prefix + '/repo/:repo/show/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath, getRevision],
   function(req, res)
 {
@@ -391,7 +391,7 @@ app.get(config.prefix + '/:repo/show/*',
     );
 });
 
-/* GET /:repo/ls-tree/<path>?rev=<revision>
+/* GET /repo/:repo/ls-tree/<path>?rev=<revision>
  *  `rev` -- can be any legal revision
  * 
  * Response:
@@ -407,7 +407,7 @@ app.get(config.prefix + '/:repo/show/*',
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/ls-tree/*',
+app.get(config.prefix + '/repo/:repo/ls-tree/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath, getRevision],
   function(req, res)
 {
@@ -426,7 +426,7 @@ app.get(config.prefix + '/:repo/ls-tree/*',
     );
 });
 
-/* GET /:repo/commit/:commit
+/* GET /repo/:repo/commit/:commit
  * 
  * Response:
  *   json: {
@@ -447,7 +447,7 @@ app.get(config.prefix + '/:repo/ls-tree/*',
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/commit/:commit',
+app.get(config.prefix + '/repo/:repo/commit/:commit',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -462,7 +462,7 @@ app.get(config.prefix + '/:repo/commit/:commit',
     );
 });
 
-/* GET /:repo/log
+/* GET /repo/:repo/log
  * 
  * Response:
  *   json: {
@@ -470,7 +470,7 @@ app.get(config.prefix + '/:repo/commit/:commit',
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/log',
+app.get(config.prefix + '/repo/:repo/log',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -485,7 +485,7 @@ app.get(config.prefix + '/:repo/log',
     );
 });
 
-/* POST /:repo/commit
+/* POST /repo/:repo/commit
  * 
  * Request:
  *  json: {
@@ -502,7 +502,7 @@ app.get(config.prefix + '/:repo/log',
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/commit',
+app.post(config.prefix + '/repo/:repo/commit',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -526,14 +526,14 @@ app.post(config.prefix + '/:repo/commit',
     );
 });
 
-/* POST /:repo/push
+/* POST /repo/:repo/push
  * 
  * Response:
  *   json: {}
  * Error:
  *   json: { "error": <error> }
  */
-app.post(config.prefix + '/:repo/push',
+app.post(config.prefix + '/repo/:repo/push',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
@@ -544,7 +544,7 @@ app.post(config.prefix + '/:repo/push',
     );
 });
 
-/* GET /:repo/tree/<path>
+/* GET /repo/:repo/tree/<path>
  * 
  * Response:
  *   json: {
@@ -556,7 +556,7 @@ app.post(config.prefix + '/:repo/push',
  * Error:
  *   json: { "error": <error> }
  */
-app.get(config.prefix + '/:repo/tree/*',
+app.get(config.prefix + '/repo/:repo/tree/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath],
   function(req, res)
 {
@@ -584,14 +584,14 @@ app.get(config.prefix + '/:repo/tree/*',
     .catch(function (err) { res.json(400, { error: err }); });
 });
 
-/* PUT /:repo/tree/<path>
+/* PUT /repo/:repo/tree/<path>
  * 
  * Response:
  *   json: {}
  * Error:
  *   json: { "error": <error> }
  */
-app.put(config.prefix + '/:repo/tree/*',
+app.put(config.prefix + '/repo/:repo/tree/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath],
   function(req, res)
 {
@@ -628,14 +628,14 @@ app.put(config.prefix + '/:repo/tree/*',
     );
 });
 
-/* DELETE /:repo/tree/<path>
+/* DELETE /repo/:repo/tree/<path>
  * 
  * Response:
  *   json: {}
  * Error:
  *   json: { "error": <error> }
  */
-app.delete(config.prefix + '/:repo/tree/*',
+app.delete(config.prefix + '/repo/:repo/tree/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath],
   function(req, res)
 {
