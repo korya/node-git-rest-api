@@ -188,7 +188,11 @@ app.post(config.prefix + '/init',
 /* POST /clone
  * 
  * Request:
- * { "remote": <remote-url> (, "repo": <local-repo-name>) }
+ *   json: {
+ *     "remote": <remote-url>,
+ *     ("repo": <local-repo-name>,)
+ *     ("bare": <git's --bare>,)
+ *   }
  *
  * Response:
  *   json: { "repo": <local repo name> }
@@ -215,12 +219,16 @@ app.post(config.prefix + '/clone',
 
   var workDir = req.git.workDir;
   var repoDir = path.join(workDir, repo);
+  var flags = '';
+
+  if (req.body.bare) flags = flags + ' --bare';
+
   dfs.exists(repoDir)
     .then(function (exists) {
       if (exists) return Q.reject('A repository ' + repo + ' already exists');
     })
     .then(function() {
-      return dgit('clone ' + remote.address + ' ' + repo, workDir);
+      return dgit('clone ' + flags + ' ' + remote.address + ' ' + repo, workDir);
     })
     .then(
       function() { res.json(200, { repo: repo }); },
