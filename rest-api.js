@@ -161,7 +161,7 @@ app.get(config.prefix + '/',
   dfs.readdir(req.git.workDir)
     .then(
       function(repoList) { res.json(repoList); },
-      function(err) { reg.json(400, { error: err.stderr }); }
+      function(error) { reg.json(400, { error: error }); }
     );
 });
 
@@ -203,7 +203,7 @@ app.post(config.prefix + '/init',
       return dgit('init ' + bare + ' ' + shared, repoDir);
     }).then(
       function() { res.json(200, { repo: repo }); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -254,7 +254,7 @@ app.post(config.prefix + '/clone',
     })
     .then(
       function() { res.json(200, { repo: repo }); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -276,7 +276,7 @@ app.delete(config.prefix + '/repo/:repo',
   dfs.rmrfdir(workDir)
     .then(
       function() { res.json(200, {}); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -305,7 +305,7 @@ app.get(config.prefix + '/repo/:repo/remote',
   dgit('remote -v', workDir, gitParser.parseGitRemotes)
     .then(
       function(remotes) { res.json(200, remotes); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -334,7 +334,7 @@ app.post(config.prefix + '/repo/:repo/remote',
   dgit('remote add ' + name + ' ' + url, workDir)
     .then(
       function() { res.json(200, {}); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -361,7 +361,7 @@ app.delete(config.prefix + '/repo/:repo/remote',
   dgit('remote rm ' + name, workDir)
     .then(
       function() { res.json(200, {}); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -390,7 +390,7 @@ app.get(config.prefix + '/repo/:repo/branch',
   dgit('branch --list', workDir, gitParser.parseGitBranches)
     .then(
       function(branches) { res.json(200, branches); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -420,7 +420,7 @@ app.post(config.prefix + '/repo/:repo/branch',
   dgit('branch ' + branch, workDir)
     .then(
       function() { res.json(200, { branch: branch }); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -456,7 +456,7 @@ app.post(config.prefix + '/repo/:repo/checkout',
     })
     .then(
       function() { res.json(200, { branch: branch }); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -486,7 +486,7 @@ app.post(config.prefix + '/repo/:repo/mv',
   dgit('mv ' + src + ' ' + dst, workDir)
     .then(
       function() { res.json(200, {}); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -509,7 +509,7 @@ app.get(config.prefix + '/repo/:repo/show/*',
   dgit('show ' + rev + ':' + file, workDir)
     .then(
       function(data) { res.send(200, data); },
-      function(err) { res.json(400, { error: err.stderr }); }
+      function(error) { res.json(400, { error: error }); }
     );
 });
 
@@ -544,7 +544,7 @@ app.get(config.prefix + '/repo/:repo/ls-tree/*',
     })
     .then(
       function (obj) { res.json(200, obj); },
-      function (err) { res.json(400, { error: err.stderr }); }
+      function (error) { res.json(400, { error: error }); }
     );
 });
 
@@ -580,7 +580,7 @@ app.get(config.prefix + '/repo/:repo/commit/:commit',
   dgit('show --decorate=full --pretty=fuller --parents ' + commit, workDir,
     gitParser.parseGitCommitShow).then(
       function(commit) { res.json(200, commit); },
-      function(err) { res.json(500, { error: err.stderr }); }
+      function(error) { res.json(500, { error: error }); }
     );
 });
 
@@ -603,7 +603,7 @@ app.get(config.prefix + '/repo/:repo/log',
   dgit('log  --decorate=full --pretty=fuller --all --parents', workDir,
     gitParser.parseGitLog).then(
       function (log) { res.json(200, log); },
-      function (err) { res.json(400, { error: err.stderr }); }
+      function (error) { res.json(400, { error: error }); }
     );
 });
 
@@ -644,7 +644,7 @@ app.post(config.prefix + '/repo/:repo/commit',
   dgit('commit ' + cmdOptions, workDir, gitParser.parseCommit)
     .then(
       function (commit) { res.json(200, commit); },
-      function (err) { res.json(400, { error: err.stderr }); }
+      function (error) { res.json(400, { error: error }); }
     );
 });
 
@@ -668,7 +668,7 @@ app.post(config.prefix + '/repo/:repo/push',
   dgit('push ' + remote + ' ' + branch, workDir)
     .then(
       function (obj) { res.json(200, obj); },
-      function (err) { res.json(400, { error: err.stderr }); }
+      function (error) { res.json(400, { error: error }); }
     );
 });
 
@@ -709,7 +709,7 @@ app.get(config.prefix + '/repo/:repo/tree/*',
       }
       return Q.reject('Not a regular file or a directory ' + file);
     })
-    .catch(function (err) { res.json(400, { error: err.stderr }); });
+    .catch(function (error) { res.json(400, { error: error }); });
 });
 
 /* PUT /repo/:repo/tree/<path>
@@ -752,7 +752,7 @@ app.put(config.prefix + '/repo/:repo/tree/*',
     .then(function() { return dgit('add ' + file, workDir); })
     .then(
       function () { res.json(200, {}); },
-      function (err) { res.json(400, { error: err.stderr }); }
+      function (error) { res.json(400, { error: error }); }
     );
 });
 
@@ -774,7 +774,7 @@ app.delete(config.prefix + '/repo/:repo/tree/*',
   dgit('rm -rf ' + file, workDir)
     .then(
       function () { res.json(200, {}); },
-      function (err) { res.json(400, { error: err.stderr }); }
+      function (error) { res.json(400, { error: error }); }
     );
 });
 
