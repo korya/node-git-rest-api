@@ -189,7 +189,7 @@ app.post(config.prefix + '/init',
   console.log('init repo:', repo, bare, shared, ';', req.git);
 
   if (!getRepoName(repo)) {
-      res.json(400, { error: 'Invalid repo name: ' + req.body.repo });
+      res.json(400, { error: 'Invalid repo name: ' + repo });
       return;
   }
 
