@@ -304,8 +304,8 @@ app.post(config.prefix + '/repo/:repo/remote',
   function(req, res)
 {
   var workDir = req.git.tree.workDir;
-  var name = req.body.name;
-  var url = req.body.url;
+  var name = req.body.name || '';
+  var url = req.body.url || '';
 
   console.log('add remote', name, url);
 
