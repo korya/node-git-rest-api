@@ -191,6 +191,34 @@ describe('remote:', function () {
       });
   });
 
+  it('should config a user name in a new repo', function (done) {
+    agent
+      .post('/repo/test-clone2/config')
+      .send({ name: "user.name", value: "Vava" })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.should.eql({});
+	done();
+      });
+  });
+
+  it('should config a email name in a new repo', function (done) {
+    agent
+      .post('/repo/test-clone2/config')
+      .send({ name: "user.email", value: "v@va" })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.should.eql({});
+	done();
+      });
+  });
+
   it('should return the "origin" remote of a second clone', function (done) {
     agent
       .get('/repo/test-clone2/remote')
