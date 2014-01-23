@@ -644,7 +644,7 @@ app.post(config.prefix + '/repo/:repo/commit',
   dgit('commit ' + cmdOptions, workDir, gitParser.parseCommit)
     .then(
       function (commit) { res.json(200, commit); },
-      function (err) { res.json(400, { error: err.stdout }); }
+      function (err) { res.json(400, { error: err }); }
     );
 });
 
