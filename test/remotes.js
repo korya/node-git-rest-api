@@ -21,6 +21,7 @@ describe('remote:', function () {
       prefix: '',
       tmpDir: TMPDIR,
       installMiddleware: true,
+      verbose: true,
     });
     server = require('http').createServer(app).listen(PORT);
     console.log('Listening on', PORT);

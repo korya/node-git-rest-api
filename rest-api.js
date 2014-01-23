@@ -49,9 +49,10 @@ exports.init = function(app, config) {
 mergeConfigs(config, defaultConfig);
 config.prefix = config.prefix.replace(/\/*$/, '');
 
-app.use(logResponseBody);
-
 if (config.installMiddleware) {
+  if (config.verbose) {
+    app.use(logResponseBody);
+  }
   app.use(express.bodyParser({ uploadDir: '/tmp', keepExtensions: true }));
   app.use(express.methodOverride());
   app.use(express.cookieParser('a-random-string-comes-here'));
