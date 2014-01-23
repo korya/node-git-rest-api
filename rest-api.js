@@ -280,6 +280,120 @@ app.delete(config.prefix + '/repo/:repo',
     );
 });
 
+/* GET /repo/:repo/config?name=<option name>
+ *
+ * Response:
+ *   json: {
+ *     "values": [<option value>*]
+ *   }
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.get(config.prefix + '/repo/:repo/config',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+  var name = req.query.name || '';
+
+  console.log('config get', name);
+
+  dgit('config --local --get-all ' + name, workDir, gitParser.parseGitConfig)
+    .then(
+      function(values) { res.json(200, { values: values }); },
+      function(error) { res.json(400, { error: error }); }
+    );
+});
+
+/* POST /repo/:repo/config
+ *
+ * Requst:
+ *   json: {
+ *     "name": <option name>,
+ *     "value": <option value>,
+ *   }
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post(config.prefix + '/repo/:repo/config',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+  var name = req.body.name || '';
+  var value = req.body.value || '';
+
+  console.log('config add', name, value);
+
+  dgit('config --local --add ' + name + ' ' + value, workDir)
+    .then(
+      function() { res.json(200, {}); },
+      function(error) { res.json(400, { error: error }); }
+    );
+});
+
+/* PUT /repo/:repo/config
+ *
+ * Requst:
+ *   json: {
+ *     "name": <option name>,
+ *     "value": <option value>,
+ *   }
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.put(config.prefix + '/repo/:repo/config',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+  var name = req.body.name || '';
+  var value = req.body.value || '';
+
+  console.log('config add', name, value);
+
+  dgit('config --local --replace-all ' + name + ' ' + value, workDir)
+    .then(
+      function() { res.json(200, {}); },
+      function(error) { res.json(400, { error: error }); }
+    );
+});
+
+/* DELETE /repo/:repo/config
+ *
+ * Requst:
+ *   json: {
+ *     "name": <option name>,
+ *     "unset-all": <whether unset all values>,
+ *   }
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.delete(config.prefix + '/repo/:repo/config',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var workDir = req.git.tree.workDir;
+  var name = req.body.name || '';
+  var unset = '--unset';
+
+  console.log('config unset', name);
+
+  if (req.body['unset-all']) unset = '--unset-all';
+
+  dgit('config --local ' + unset + ' ' + name, workDir)
+    .then(
+      function() { res.json(200, {}); },
+      function(error) { res.json(400, { error: error }); }
+    );
+});
+
 /* GET /repo/:repo/remote
  *
  * Response:
