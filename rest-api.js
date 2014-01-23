@@ -358,7 +358,7 @@ app.delete(config.prefix + '/repo/:repo/remote',
 
   console.log('rem remote', name);
 
-  dgit('remote remove ' + name, workDir)
+  dgit('remote rm ' + name, workDir)
     .then(
       function() { res.json(200, {}); },
       function(err) { res.json(400, { error: err }); }
