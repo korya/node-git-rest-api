@@ -24,10 +24,32 @@ function mergeConfigs(dst, src) {
   }
 }
 
+function logResponseBody(req, res, next) {
+  var oldWrite = res.write,
+      oldEnd = res.end;
+  var chunks = [];
+
+  res.write = function (chunk) {
+    chunks.push(chunk);
+    oldWrite.apply(res, arguments);
+  };
+
+  res.end = function (chunk) {
+    if (chunk) chunks.push(chunk);
+    var body = Buffer.concat(chunks).toString('utf8');
+    console.log(req.path, body);
+    oldEnd.apply(res, arguments);
+  };
+
+  next();
+}
+
 exports.init = function(app, config) {
 
 mergeConfigs(config, defaultConfig);
 config.prefix = config.prefix.replace(/\/*$/, '');
+
+app.use(logResponseBody);
 
 if (config.installMiddleware) {
   app.use(express.bodyParser({ uploadDir: '/tmp', keepExtensions: true }));
