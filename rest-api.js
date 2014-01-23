@@ -182,7 +182,7 @@ app.post(config.prefix + '/init',
   [prepareGitVars, getWorkdir],
   function(req, res)
 {
-  var repo = req.body.repo;
+  var repo = req.body.repo || '';
   var bare = req.body.bare ? '--bare' : '';
   var shared = req.body.shared ? '--shared' : '';
 
