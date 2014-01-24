@@ -25,6 +25,7 @@
     "dive": "0.3.0",
     "q": "0.9.6",
     "rimraf": "2.2.5",
+    "winston": "0.7.2",
     "signals": "~1.0.0"
   },
   "devDependencies": {

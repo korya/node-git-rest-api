@@ -3,6 +3,7 @@ var express = require('express'),
     path = require('path'),
     temp = require('temp'),
     Q = require('q'),
+    winston = require('winston'),
     dgit = require('./lib/deferred-git'),
     gitParser = require('./lib/git-parser'),
     addressParser = require('./lib/address-parser'),
@@ -13,6 +14,12 @@ defaultConfig = {
   tmpDir: '/tmp/git',
   installMiddleware: false,
 };
+
+var logger = new (winston.Logger)({
+  transports: [
+    new (winston.transports.Console)({ level: 'error' }),
+  ],
+});
 
 function mergeConfigs(dst, src) {
   /* XXX good enough */
@@ -37,7 +44,7 @@ function logResponseBody(req, res, next) {
   res.end = function (chunk) {
     if (chunk) chunks.push(chunk);
     var body = Buffer.concat(chunks).toString('utf8');
-    console.log(req.path, body);
+    logger.info(req.path, body);
     oldEnd.apply(res, arguments);
   };
 
@@ -78,7 +85,7 @@ function getWorkdir(req, res, next) {
       res.cookie('workDir', workDir, { signed: true });
     }).then(function() {
       req.git.workDir = workDir;
-      console.log('work dir:', req.git.workDir);
+      logger.info('work dir:', req.git.workDir);
       next();
     });
 }
@@ -102,7 +109,7 @@ function getRepo(req, res, next) {
 
   req.git.tree.repo = repo;
   req.git.tree.workDir = workDir;
-  console.log('repo dir:', req.git.tree.workDir);
+  logger.info('repo dir:', req.git.tree.workDir);
   next();
 }
 
@@ -112,19 +119,19 @@ function getFilePath(req, res, next) {
   var pathNoPrefix = req.path.substr(config.prefix.length);
   var filePath = pathNoPrefix.split('/').slice(4).join(path.sep);
 
-  console.log('path: ', filePath)
+  logger.info('path: ', filePath)
   /* get rid of trailing slash */
   filePath = path.normalize(filePath + '/_/..');
   if (filePath === '/') filePath = '';
   req.git.file.path = filePath;
-  console.log('file path:', req.git.file.path);
+  logger.info('file path:', req.git.file.path);
   next();
 }
 
 function getRevision(req, res, next) {
   if (req.query.rev) {
     req.git.file.rev = req.query.rev;
-    console.log('revision:', req.git.file.rev);
+    logger.info('revision:', req.git.file.rev);
   }
   next();
 }
@@ -138,7 +145,7 @@ app.param('commit', function (req, res, next, val) {
   next();
 });
 app.param('repo', function (req, res, next, val) {
-  console.log('repo:', val);
+  logger.info('repo:', val);
   if (!getRepoName(val)) {
     res.json(400, { error: "Illegal repo name: " + val });
     return;
@@ -158,7 +165,9 @@ app.get(config.prefix + '/',
   function(req, res)
 {
   var deferred = Q.defer();
-  console.log('list repositories');
+
+  logger.info('list repositories');
+
   dfs.readdir(req.git.workDir)
     .then(
       function(repoList) { res.json(repoList); },
@@ -187,7 +196,7 @@ app.post(config.prefix + '/init',
   var bare = req.body.bare ? '--bare' : '';
   var shared = req.body.shared ? '--shared' : '';
 
-  console.log('init repo:', repo, bare, shared, ';', req.git);
+  logger.info('init repo:', repo, bare, shared, ';', req.git);
 
   if (!getRepoName(repo)) {
       res.json(400, { error: 'Invalid repo name: ' + repo });
@@ -226,7 +235,7 @@ app.post(config.prefix + '/clone',
   [prepareGitVars, getWorkdir],
   function(req, res)
 {
-  console.log('clone repo:', req.body.remote);
+  logger.info('clone repo:', req.body.remote);
 
   if (!req.body.remote) {
       res.json(400, { error: 'Empty remote url' });
@@ -272,7 +281,7 @@ app.delete(config.prefix + '/repo/:repo',
 {
   var workDir = req.git.tree.workDir;
 
-  console.log('delete repo:', req.git.tree.repo);
+  logger.info('delete repo:', req.git.tree.repo);
 
   dfs.rmrfdir(workDir)
     .then(
@@ -297,7 +306,7 @@ app.get(config.prefix + '/repo/:repo/config',
   var workDir = req.git.tree.workDir;
   var name = req.query.name || '';
 
-  console.log('config get', name);
+  logger.info('config get', name);
 
   dgit('config --local --get-all ' + name, workDir, gitParser.parseGitConfig)
     .then(
@@ -326,7 +335,7 @@ app.post(config.prefix + '/repo/:repo/config',
   var name = req.body.name || '';
   var value = req.body.value || '';
 
-  console.log('config add', name, value);
+  logger.info('config add', name, value);
 
   dgit('config --local --add ' + name + ' ' + value, workDir)
     .then(
@@ -355,7 +364,7 @@ app.put(config.prefix + '/repo/:repo/config',
   var name = req.body.name || '';
   var value = req.body.value || '';
 
-  console.log('config add', name, value);
+  logger.info('config add', name, value);
 
   dgit('config --local --replace-all ' + name + ' ' + value, workDir)
     .then(
@@ -384,7 +393,7 @@ app.delete(config.prefix + '/repo/:repo/config',
   var name = req.body.name || '';
   var unset = '--unset';
 
-  console.log('config unset', name);
+  logger.info('config unset', name);
 
   if (req.body['unset-all']) unset = '--unset-all';
 
@@ -415,7 +424,7 @@ app.get(config.prefix + '/repo/:repo/remote',
 {
   var workDir = req.git.tree.workDir;
 
-  console.log('list remotes');
+  logger.info('list remotes');
 
   dgit('remote -v', workDir, gitParser.parseGitRemotes)
     .then(
@@ -444,7 +453,7 @@ app.post(config.prefix + '/repo/:repo/remote',
   var name = req.body.name || '';
   var url = req.body.url || '';
 
-  console.log('add remote', name, url);
+  logger.info('add remote', name, url);
 
   dgit('remote add ' + name + ' ' + url, workDir)
     .then(
@@ -471,7 +480,7 @@ app.delete(config.prefix + '/repo/:repo/remote',
   var workDir = req.git.tree.workDir;
   var name = req.body.name;
 
-  console.log('rem remote', name);
+  logger.info('rem remote', name);
 
   dgit('remote rm ' + name, workDir)
     .then(
@@ -500,7 +509,7 @@ app.get(config.prefix + '/repo/:repo/branch',
 {
   var workDir = req.git.tree.workDir;
 
-  console.log('list branches');
+  logger.info('list branches');
 
   dgit('branch --list', workDir, gitParser.parseGitBranches)
     .then(
@@ -526,7 +535,8 @@ app.post(config.prefix + '/repo/:repo/branch',
   var workDir = req.git.tree.workDir;
   var branch = req.body.branch;
 
-  console.log('create branch:', branch);
+  logger.info('create branch:', branch);
+
   if (!branch) {
     res.json(400, { error: 'No branch name is specified' });
     return;
@@ -556,7 +566,8 @@ app.post(config.prefix + '/repo/:repo/checkout',
   var workDir = req.git.tree.workDir;
   var branch = req.body.branch;
 
-  console.log('checkout branch:', branch);
+  logger.info('checkout branch:', branch);
+
   if (!branch) {
     res.json(400, { error: 'No branch name is specified' });
     return;
@@ -596,7 +607,7 @@ app.post(config.prefix + '/repo/:repo/mv',
   var src = req.body.source;
   var dst = req.body.destination;
 
-  console.log('move: ', src, '->', dst);
+  logger.info('move: ', src, '->', dst);
 
   dgit('mv ' + src + ' ' + dst, workDir)
     .then(
@@ -691,7 +702,8 @@ app.get(config.prefix + '/repo/:repo/commit/:commit',
   var workDir = req.git.tree.workDir;
   var commit = req.params.commit;
 
-  console.log('get commit info: ', commit, ', workDir:', workDir);
+  logger.info('get commit info: ', commit, ', workDir:', workDir);
+
   dgit('show --decorate=full --pretty=fuller --parents ' + commit, workDir,
     gitParser.parseGitCommitShow).then(
       function(commit) { res.json(200, commit); },
@@ -714,7 +726,8 @@ app.get(config.prefix + '/repo/:repo/log',
   var message = req.body.message;
   var workDir = req.git.tree.workDir;
 
-  console.log('log');
+  logger.info('log');
+
   dgit('log  --decorate=full --pretty=fuller --all --parents', workDir,
     gitParser.parseGitLog).then(
       function (log) { res.json(200, log); },
@@ -747,7 +760,8 @@ app.post(config.prefix + '/repo/:repo/commit',
   var workDir = req.git.tree.workDir;
   var cmdOptions = '';
 
-  console.log('commit message:', message);
+  logger.info('commit message:', message);
+
   if (!message) {
     res.json(400, { error: 'Empty commit message' });
     return;
@@ -807,7 +821,8 @@ app.get(config.prefix + '/repo/:repo/tree/*',
   var file = req.git.file.path;
   var fileFullPath = path.join(workDir, file);
 
-  console.log('get file: ' + file);
+  logger.info('get file: ' + file);
+
   dfs.exists(fileFullPath)
     .then(function (exists) {
       if (!exists) return Q.reject('No such file: ' + fileFullPath);
@@ -885,7 +900,8 @@ app.delete(config.prefix + '/repo/:repo/tree/*',
   var workDir = req.git.tree.workDir;
   var file = req.git.file.path;
 
-  console.log('del file:', file);
+  logger.info('del file:', file);
+
   dgit('rm -rf ' + file, workDir)
     .then(
       function () { res.json(200, {}); },
@@ -895,9 +911,9 @@ app.delete(config.prefix + '/repo/:repo/tree/*',
 
 return dgit('--version', '.')
   .then(function(data) {
-    console.error(' ++++ ', data);
+    logger.warn(' ++++ ', data);
   }, function (err) {
-    console.error('git version: error:', err);
+    logger.warn('git version: error:', err);
   })
   .then(function () {
     return dfs.exists(config.tmpDir);
