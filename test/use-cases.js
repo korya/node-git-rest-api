@@ -6,7 +6,7 @@ var request = require('supertest'),
     fs = require('fs'),
     api = require('../rest-api');
 
-describe('API:', function () {
+describe('use case:', function () {
   var TMPDIR = './tmp-test-git';
   var PORT = 9854;
   var URL = 'http://localhost:' + PORT;
@@ -42,7 +42,6 @@ describe('API:', function () {
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
-	console.log(res.headers['set-cookie']);
 	res.body.should.eql([]);
 	done();
       });
@@ -69,7 +68,6 @@ describe('API:', function () {
       .expect(200)
       .end(function (err, res) {
 	if (err) throw err;
-	console.log(res.body);
 	res.body.should.eql(["test"]);
 	done();
       });
