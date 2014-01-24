@@ -38,9 +38,9 @@ $ npm install express
 A simple example of a server running `git-rest-api`:
 ```javascript
 var app = require('express')(),
-    api = require('git-rest-api');
+    git = require('git-rest-api');
 
-api.init(app, { installMiddleware: true }).then(function () {
+git.init(app, { installMiddleware: true }).then(function () {
   app.listen(8080);
   console.log('Listening on', 8080);
 });
