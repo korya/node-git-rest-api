@@ -1,7 +1,7 @@
 {
   "name": "git-rest-api",
   "description":
-    "An example of a server running on Node.js and providing git restful API",
+    "A library providing a restful Git API mimicking as most as possible the old good git",
   "version": "0.1.3",
   "author": "korya <korya@github.com>",
   "repository": {
