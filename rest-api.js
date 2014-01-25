@@ -164,11 +164,11 @@ app.get(config.prefix + '/',
   [prepareGitVars, getWorkdir],
   function(req, res)
 {
-  var deferred = Q.defer();
+  var workDir = req.git.workDir;
 
   logger.info('list repositories');
 
-  dfs.readdir(req.git.workDir)
+  dfs.readdir(workDir)
     .then(
       function(repoList) { res.json(repoList); },
       function(error) { reg.json(400, { error: error }); }
