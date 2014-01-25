@@ -19,11 +19,14 @@ $ git show HEAD~:file.c
 
 In case of `git-rest-api` you should do:
 ```shell
-POST /init?repo="new-project"
+POST /init
+  { "repo": "new-project" }
 POST /repo/new-project/tree/file.c
-POST /repo/new-project/commit?message="A commit message"
+POST /repo/new-project/commit
+  { "message": "A commit message" }
 POST /repo/new-project/tree/file.c
-POST /repo/new-project/commit?message="A second commit message"
+POST /repo/new-project/commit
+  { "message": "A second commit message" }
 GET  /repo/new-project/show/file.c?rev=HEAD~
 ```
 
