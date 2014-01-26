@@ -98,18 +98,17 @@ function getRepoName(val) {
 }
 
 function getRepo(req, res, next) {
-  var workDir;
   var repo = req.params.repo;
+  var repoDir = path.join(req.git.workDir, repo);
 
-  workDir = req.git.workDir + '/' + repo;
-  if (!fs.existsSync(workDir)) {
+  if (!fs.existsSync(repoDir)) {
     res.json(400, { error: "Unknown repo: " + repo });
     return;
   }
 
   req.git.tree.repo = repo;
-  req.git.tree.workDir = workDir;
-  logger.info('repo dir:', req.git.tree.workDir);
+  req.git.tree.repoDir = repoDir;
+  logger.info('repo dir:', req.git.tree.repoDir);
   next();
 }
 
@@ -279,11 +278,11 @@ app.delete(config.prefix + '/repo/:repo',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
 
   logger.info('delete repo:', req.git.tree.repo);
 
-  dfs.rmrfdir(workDir)
+  dfs.rmrfdir(repoDir)
     .then(
       function() { res.json(200, {}); },
       function(error) { res.json(400, { error: error }); }
@@ -303,12 +302,12 @@ app.get(config.prefix + '/repo/:repo/config',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var name = req.query.name || '';
 
   logger.info('config get', name);
 
-  dgit('config --local --get-all ' + name, workDir, gitParser.parseGitConfig)
+  dgit('config --local --get-all ' + name, repoDir, gitParser.parseGitConfig)
     .then(
       function(values) { res.json(200, { values: values }); },
       function(error) { res.json(400, { error: error }); }
@@ -331,13 +330,13 @@ app.post(config.prefix + '/repo/:repo/config',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var name = req.body.name || '';
   var value = req.body.value || '';
 
   logger.info('config add', name, value);
 
-  dgit('config --local --add ' + name + ' ' + value, workDir)
+  dgit('config --local --add ' + name + ' ' + value, repoDir)
     .then(
       function() { res.json(200, {}); },
       function(error) { res.json(400, { error: error }); }
@@ -360,13 +359,13 @@ app.put(config.prefix + '/repo/:repo/config',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var name = req.body.name || '';
   var value = req.body.value || '';
 
   logger.info('config add', name, value);
 
-  dgit('config --local --replace-all ' + name + ' ' + value, workDir)
+  dgit('config --local --replace-all ' + name + ' ' + value, repoDir)
     .then(
       function() { res.json(200, {}); },
       function(error) { res.json(400, { error: error }); }
@@ -389,7 +388,7 @@ app.delete(config.prefix + '/repo/:repo/config',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var name = req.body.name || '';
   var unset = '--unset';
 
@@ -397,7 +396,7 @@ app.delete(config.prefix + '/repo/:repo/config',
 
   if (req.body['unset-all']) unset = '--unset-all';
 
-  dgit('config --local ' + unset + ' ' + name, workDir)
+  dgit('config --local ' + unset + ' ' + name, repoDir)
     .then(
       function() { res.json(200, {}); },
       function(error) { res.json(400, { error: error }); }
@@ -422,11 +421,11 @@ app.get(config.prefix + '/repo/:repo/remote',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
 
   logger.info('list remotes');
 
-  dgit('remote -v', workDir, gitParser.parseGitRemotes)
+  dgit('remote -v', repoDir, gitParser.parseGitRemotes)
     .then(
       function(remotes) { res.json(200, remotes); },
       function(error) { res.json(400, { error: error }); }
@@ -449,13 +448,13 @@ app.post(config.prefix + '/repo/:repo/remote',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var name = req.body.name || '';
   var url = req.body.url || '';
 
   logger.info('add remote', name, url);
 
-  dgit('remote add ' + name + ' ' + url, workDir)
+  dgit('remote add ' + name + ' ' + url, repoDir)
     .then(
       function() { res.json(200, {}); },
       function(error) { res.json(400, { error: error }); }
@@ -477,12 +476,12 @@ app.delete(config.prefix + '/repo/:repo/remote',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var name = req.body.name;
 
   logger.info('rem remote', name);
 
-  dgit('remote rm ' + name, workDir)
+  dgit('remote rm ' + name, repoDir)
     .then(
       function() { res.json(200, {}); },
       function(error) { res.json(400, { error: error }); }
@@ -507,11 +506,11 @@ app.get(config.prefix + '/repo/:repo/branch',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
 
   logger.info('list branches');
 
-  dgit('branch --list', workDir, gitParser.parseGitBranches)
+  dgit('branch --list', repoDir, gitParser.parseGitBranches)
     .then(
       function(branches) { res.json(200, branches); },
       function(error) { res.json(400, { error: error }); }
@@ -532,7 +531,7 @@ app.post(config.prefix + '/repo/:repo/branch',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var branch = req.body.branch;
 
   logger.info('create branch:', branch);
@@ -542,7 +541,7 @@ app.post(config.prefix + '/repo/:repo/branch',
     return;
   }
 
-  dgit('branch ' + branch, workDir)
+  dgit('branch ' + branch, repoDir)
     .then(
       function() { res.json(200, { branch: branch }); },
       function(error) { res.json(400, { error: error }); }
@@ -563,7 +562,7 @@ app.post(config.prefix + '/repo/:repo/checkout',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var branch = req.body.branch;
 
   logger.info('checkout branch:', branch);
@@ -573,12 +572,12 @@ app.post(config.prefix + '/repo/:repo/checkout',
     return;
   }
 
-  dfs.exists(workDir + '/.git/refs/heads/' + branch)
+  dfs.exists(repoDir + '/.git/refs/heads/' + branch)
     .then(function (exists) {
       if (!exists) return Q.reject('Unknown branch ' + branch);
     })
     .then(function() {
-      return dgit('checkout ' + branch, workDir);
+      return dgit('checkout ' + branch, repoDir);
     })
     .then(
       function() { res.json(200, { branch: branch }); },
@@ -603,13 +602,13 @@ app.post(config.prefix + '/repo/:repo/mv',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var src = req.body.source;
   var dst = req.body.destination;
 
   logger.info('move: ', src, '->', dst);
 
-  dgit('mv ' + src + ' ' + dst, workDir)
+  dgit('mv ' + src + ' ' + dst, repoDir)
     .then(
       function() { res.json(200, {}); },
       function(error) { res.json(400, { error: error }); }
@@ -628,11 +627,11 @@ app.get(config.prefix + '/repo/:repo/show/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath, getRevision],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
 
-  dgit('show ' + rev + ':' + file, workDir)
+  dgit('show ' + rev + ':' + file, repoDir)
     .then(
       function(data) { res.send(200, data); },
       function(error) { res.json(400, { error: error }); }
@@ -659,11 +658,11 @@ app.get(config.prefix + '/repo/:repo/ls-tree/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath, getRevision],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
 
-  dgit('ls-tree -tr ' + rev + ' ' + file, workDir, gitParser.parseLsTree)
+  dgit('ls-tree -tr ' + rev + ' ' + file, repoDir, gitParser.parseLsTree)
     .then(function (obj) {
 	if (!obj) return Q.reject('No such file ' + file + ' in ' + rev);
 	return obj;
@@ -699,12 +698,12 @@ app.get(config.prefix + '/repo/:repo/commit/:commit',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var commit = req.params.commit;
 
-  logger.info('get commit info: ', commit, ', workDir:', workDir);
+  logger.info('get commit info: ', commit, ', repoDir:', repoDir);
 
-  dgit('show --decorate=full --pretty=fuller --parents ' + commit, workDir,
+  dgit('show --decorate=full --pretty=fuller --parents ' + commit, repoDir,
     gitParser.parseGitCommitShow).then(
       function(commit) { res.json(200, commit); },
       function(error) { res.json(500, { error: error }); }
@@ -724,11 +723,11 @@ app.get(config.prefix + '/repo/:repo/log',
   function(req, res)
 {
   var message = req.body.message;
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
 
   logger.info('log');
 
-  dgit('log  --decorate=full --pretty=fuller --all --parents', workDir,
+  dgit('log  --decorate=full --pretty=fuller --all --parents', repoDir,
     gitParser.parseGitLog).then(
       function (log) { res.json(200, log); },
       function (error) { res.json(400, { error: error }); }
@@ -757,7 +756,7 @@ app.post(config.prefix + '/repo/:repo/commit',
   function(req, res)
 {
   var message = req.body.message;
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var cmdOptions = '';
 
   logger.info('commit message:', message);
@@ -770,7 +769,7 @@ app.post(config.prefix + '/repo/:repo/commit',
   cmdOptions = '-m "' + message + '"';
   if (req.body['allow-empty']) cmdOptions += ' --allow-empty';
 
-  dgit('commit ' + cmdOptions, workDir, gitParser.parseCommit)
+  dgit('commit ' + cmdOptions, repoDir, gitParser.parseCommit)
     .then(
       function (commit) { res.json(200, commit); },
       function (error) { res.json(400, { error: error }); }
@@ -790,11 +789,11 @@ app.post(config.prefix + '/repo/:repo/push',
   [prepareGitVars, getWorkdir, getRepo],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var remote = req.body.remote || 'origin';
   var branch = req.body.branch || '';
 
-  dgit('push ' + remote + ' ' + branch, workDir)
+  dgit('push ' + remote + ' ' + branch, repoDir)
     .then(
       function (obj) { res.json(200, obj); },
       function (error) { res.json(400, { error: error }); }
@@ -817,9 +816,9 @@ app.get(config.prefix + '/repo/:repo/tree/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var file = req.git.file.path;
-  var fileFullPath = path.join(workDir, file);
+  var fileFullPath = path.join(repoDir, file);
 
   logger.info('get file: ' + file);
 
@@ -853,9 +852,9 @@ app.put(config.prefix + '/repo/:repo/tree/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var file = req.git.file.path;
-  var fileFullPath = path.join(workDir, file);
+  var fileFullPath = path.join(repoDir, file);
   var tmpPath = req.files && req.files.file ? req.files.file.path : null;
 
   if (!tmpPath) {
@@ -871,7 +870,7 @@ app.put(config.prefix + '/repo/:repo/tree/*',
       });
     })
     .then(function () {
-      var dstPath = path.join(workDir, file);
+      var dstPath = path.join(repoDir, file);
       /* If rename fails, try to copy the file. Rename plays with links and
        * hence can fail when the source and the destination lye on different
        * file systems.
@@ -879,7 +878,7 @@ app.put(config.prefix + '/repo/:repo/tree/*',
       return dfs.rename(tmpPath, dstPath)
         .catch(function (err) { return dfs.copy(tmpPath, dstPath); });
       })
-    .then(function() { return dgit('add ' + file, workDir); })
+    .then(function() { return dgit('add ' + file, repoDir); })
     .then(
       function () { res.json(200, {}); },
       function (error) { res.json(400, { error: error }); }
@@ -897,12 +896,12 @@ app.delete(config.prefix + '/repo/:repo/tree/*',
   [prepareGitVars, getWorkdir, getRepo, getFilePath],
   function(req, res)
 {
-  var workDir = req.git.tree.workDir;
+  var repoDir = req.git.tree.repoDir;
   var file = req.git.file.path;
 
   logger.info('del file:', file);
 
-  dgit('rm -rf ' + file, workDir)
+  dgit('rm -rf ' + file, repoDir)
     .then(
       function () { res.json(200, {}); },
       function (error) { res.json(400, { error: error }); }
