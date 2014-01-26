@@ -101,15 +101,17 @@ function getRepo(req, res, next) {
   var repo = req.params.repo;
   var repoDir = path.join(req.git.workDir, repo);
 
-  if (!fs.existsSync(repoDir)) {
-    res.json(400, { error: "Unknown repo: " + repo });
-    return;
-  }
+  dfs.exists(repoDir).then(function (exists) {
+    if (!exists) {
+      res.json(400, { error: "Unknown repo: " + repo });
+      return;
+    }
 
-  req.git.tree.repo = repo;
-  req.git.tree.repoDir = repoDir;
-  logger.info('repo dir:', req.git.tree.repoDir);
-  next();
+    req.git.tree.repo = repo;
+    req.git.tree.repoDir = repoDir;
+    logger.info('repo dir:', req.git.tree.repoDir);
+    next();
+  });
 }
 
 function getFilePath(req, res, next) {
