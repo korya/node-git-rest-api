@@ -802,6 +802,30 @@ app.post(config.prefix + '/repo/:repo/push',
     );
 });
 
+/* POST /repo/:repo/pull
+ * 
+ * Request:
+ *   json: { ({"remote": <remote name>, "branch": <branch name>}) }
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post(config.prefix + '/repo/:repo/pull',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var repoDir = req.git.tree.repoDir;
+  var remote = req.body.remote || 'origin';
+  var branch = req.body.branch || '';
+
+  dgit('pull ' + remote + ' ' + branch, repoDir)
+    .then(
+      function (obj) { res.json(200, { message: obj.trim() }); },
+      function (error) { res.json(400, { error: error }); }
+    );
+});
+
 /* GET /repo/:repo/tree/<path>
  * 
  * Response:
