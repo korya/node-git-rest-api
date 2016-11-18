@@ -42,7 +42,7 @@ function logResponseBody(req, res, next) {
   };
 
   res.end = function (chunk) {
-    if (chunk) chunks.push(chunk);
+    if (chunk) chunks.push(Buffer.from(chunk));
     var body = Buffer.concat(chunks).toString('utf8');
     logger.info(req.path, body);
     oldEnd.apply(res, arguments);
@@ -75,7 +75,7 @@ function prepareGitVars(req, res, next) {
 }
 
 function getWorkdir(req, res, next) {
-  var workDir = req.signedCookies.workDir;
+  var workDir = config.workDir?config.workDir:req.signedCookies.workDir;
 
   dfs.exists(workDir)
     .then(function (exists) { if (!exists) return Q.reject('not exists'); })
@@ -798,6 +798,30 @@ app.post(config.prefix + '/repo/:repo/push',
   dgit('push ' + remote + ' ' + branch, repoDir)
     .then(
       function (obj) { res.json(200, obj); },
+      function (error) { res.json(400, { error: error }); }
+    );
+});
+
+/* POST /repo/:repo/pull
+ * 
+ * Request:
+ *   json: { ({"remote": <remote name>, "branch": <branch name>}) }
+ * Response:
+ *   json: {}
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.post(config.prefix + '/repo/:repo/pull',
+  [prepareGitVars, getWorkdir, getRepo],
+  function(req, res)
+{
+  var repoDir = req.git.tree.repoDir;
+  var remote = req.body.remote || 'origin';
+  var branch = req.body.branch || '';
+
+  dgit('pull ' + remote + ' ' + branch, repoDir)
+    .then(
+      function (obj) { res.json(200, { message: obj.trim() }); },
       function (error) { res.json(400, { error: error }); }
     );
 });

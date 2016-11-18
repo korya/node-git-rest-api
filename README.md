@@ -38,6 +38,8 @@ $ npm install git-rest-api
 $ npm install express
 ```
 
+## Example servers
+
 A simple example of a server running `git-rest-api`:
 ```javascript
 var app = require('express')(),
@@ -49,6 +51,21 @@ git.init(app, { installMiddleware: true }).then(function () {
 });
 ```
 
-## Examples
+All actions on repositories are specific to the client session.
+To share repositories between sessions/cookies, pass an existing path to `workDir` in the `init config`, e.g.
+```javascript
+mkdirp = require('mkdirp');
+var WRKDIR = './wrk-test-git';
+mkdirp.sync(WRKDIR, 0755);
+git.init(app, { workDir: WRKDIR }).then(function () {
+  ...
+});
+```
+
+For a dockerized version, check [docker-node-git-rest-api](https://github.com/shadiakiki1986/docker-node-git-rest-api)
+
+## Example clients
+
+ATM (2016-11-18) [git-rest-api-client-php](https://github.com/shadiakiki1986/git-rest-api-client-php) is a php client (work-in-progress)
 
 ## API

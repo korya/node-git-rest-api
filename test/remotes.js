@@ -264,6 +264,20 @@ describe('remote:', function () {
       });
   });
 
+  it('should pull commit to test', function (done) {
+    agent
+      .post('/repo/test-clone2/pull')
+      .send({ branch: 'master' })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+        if (err) throw err;
+        should.not.exist(res.body.error);
+        res.body.should.eql({message:'Already up-to-date.'});
+        done();
+      });
+  });
+
   it('should create branch "br"', function (done) {
     agent
       .post('/repo/test-clone2/branch')
