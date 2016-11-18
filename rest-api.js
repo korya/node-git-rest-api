@@ -75,7 +75,7 @@ function prepareGitVars(req, res, next) {
 }
 
 function getWorkdir(req, res, next) {
-  var workDir = req.signedCookies.workDir;
+  var workDir = config.workDir?config.workDir:req.signedCookies.workDir;
 
   dfs.exists(workDir)
     .then(function (exists) { if (!exists) return Q.reject('not exists'); })
