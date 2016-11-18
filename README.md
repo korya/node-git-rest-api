@@ -38,7 +38,7 @@ $ npm install git-rest-api
 $ npm install express
 ```
 
-## Examples
+## Example servers
 
 A simple example of a server running `git-rest-api`:
 ```javascript
@@ -63,5 +63,9 @@ git.init(app, { workDir: WRKDIR }).then(function () {
 ```
 
 For a dockerized version, check [docker-node-git-rest-api](https://github.com/shadiakiki1986/docker-node-git-rest-api)
+
+## Example clients
+
+ATM (2016-11-18) [git-rest-api-client-php](https://github.com/shadiakiki1986/git-rest-api-client-php) is a php client (work-in-progress)
 
 ## API
