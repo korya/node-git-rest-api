@@ -62,4 +62,6 @@ git.init(app, { workDir: WRKDIR }).then(function () {
 });
 ```
 
+For a dockerized version, check [docker-node-git-rest-api](https://github.com/shadiakiki1986/docker-node-git-rest-api)
+
 ## API
