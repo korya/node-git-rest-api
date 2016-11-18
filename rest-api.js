@@ -42,7 +42,7 @@ function logResponseBody(req, res, next) {
   };
 
   res.end = function (chunk) {
-    if (chunk) chunks.push(chunk);
+    if (chunk) chunks.push(Buffer.from(chunk));
     var body = Buffer.concat(chunks).toString('utf8');
     logger.info(req.path, body);
     oldEnd.apply(res, arguments);
