@@ -7,7 +7,8 @@ var express = require('express'),
     dgit = require('./lib/deferred-git'),
     gitParser = require('./lib/git-parser'),
     addressParser = require('./lib/address-parser'),
-    dfs = require('./lib/deferred-fs');
+    dfs = require('./lib/deferred-fs'),
+    methodOverride = require('method-override');
 
 defaultConfig = {
   prefix: '',
@@ -61,7 +62,7 @@ if (config.installMiddleware) {
     app.use(logResponseBody);
   }
   app.use(express.bodyParser({ uploadDir: '/tmp', keepExtensions: true }));
-  app.use(express.methodOverride());
+  app.use(methodOverride());
   app.use(express.cookieParser('a-random-string-comes-here'));
 }
 
@@ -103,7 +104,7 @@ function getRepo(req, res, next) {
 
   dfs.exists(repoDir).then(function (exists) {
     if (!exists) {
-      res.json(400, { error: "Unknown repo: " + repo });
+      res.status(400).json({ error: "Unknown repo: " + repo });
       return;
     }
 
@@ -140,7 +141,7 @@ function getRevision(req, res, next) {
 app.param('commit', function (req, res, next, val) {
   var match = /^[a-f0-9]{5,40}$/i.exec(String(val));
   if (!match) {
-    res.json(400, { error: "Illegal commit name: " + val });
+    res.status(400).json({ error: "Illegal commit name: " + val });
     return;
   }
   next();
@@ -148,7 +149,7 @@ app.param('commit', function (req, res, next, val) {
 app.param('repo', function (req, res, next, val) {
   logger.info('repo:', val);
   if (!getRepoName(val)) {
-    res.json(400, { error: "Illegal repo name: " + val });
+    res.status(400).json({ error: "Illegal repo name: " + val });
     return;
   }
   next();
@@ -200,7 +201,7 @@ app.post(config.prefix + '/init',
   logger.info('init repo:', repo, bare, shared, ';', req.git);
 
   if (!getRepoName(repo)) {
-      res.json(400, { error: 'Invalid repo name: ' + repo });
+      res.status(400).json({ error: 'Invalid repo name: ' + repo });
       return;
   }
 
@@ -213,8 +214,8 @@ app.post(config.prefix + '/init',
     .then(function() {
       return dgit('init ' + bare + ' ' + shared, repoDir);
     }).then(
-      function() { res.json(200, { repo: repo }); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({ repo: repo }); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -239,14 +240,14 @@ app.post(config.prefix + '/clone',
   logger.info('clone repo:', req.body.remote);
 
   if (!req.body.remote) {
-      res.json(400, { error: 'Empty remote url' });
+      res.status(400).json({ error: 'Empty remote url' });
       return;
   }
 
   var remote = addressParser.parseAddress(req.body.remote);
   var repo = req.body.repo || remote.shortProject;
   if (!getRepoName(repo)) {
-      res.json(400, { error: 'Invalid repo name: ' + repo });
+      res.status(400).json({ error: 'Invalid repo name: ' + repo });
       return;
   }
 
@@ -264,8 +265,8 @@ app.post(config.prefix + '/clone',
       return dgit('clone ' + flags + ' ' + remote.address + ' ' + repo, workDir);
     })
     .then(
-      function() { res.json(200, { repo: repo }); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({ repo: repo }); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -286,8 +287,8 @@ app.delete(config.prefix + '/repo/:repo',
 
   dfs.rmrfdir(repoDir)
     .then(
-      function() { res.json(200, {}); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({}); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -311,8 +312,8 @@ app.get(config.prefix + '/repo/:repo/config',
 
   dgit('config --local --get-all ' + name, repoDir, gitParser.parseGitConfig)
     .then(
-      function(values) { res.json(200, { values: values }); },
-      function(error) { res.json(400, { error: error }); }
+      function(values) { res.status(200).json({ values: values }); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -340,8 +341,8 @@ app.post(config.prefix + '/repo/:repo/config',
 
   dgit('config --local --add ' + name + ' ' + value, repoDir)
     .then(
-      function() { res.json(200, {}); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({}); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -369,8 +370,8 @@ app.put(config.prefix + '/repo/:repo/config',
 
   dgit('config --local --replace-all ' + name + ' ' + value, repoDir)
     .then(
-      function() { res.json(200, {}); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({}); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -400,8 +401,8 @@ app.delete(config.prefix + '/repo/:repo/config',
 
   dgit('config --local ' + unset + ' ' + name, repoDir)
     .then(
-      function() { res.json(200, {}); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({}); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -429,8 +430,8 @@ app.get(config.prefix + '/repo/:repo/remote',
 
   dgit('remote -v', repoDir, gitParser.parseGitRemotes)
     .then(
-      function(remotes) { res.json(200, remotes); },
-      function(error) { res.json(400, { error: error }); }
+      function(remotes) { res.status(200).json(remotes); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -458,8 +459,8 @@ app.post(config.prefix + '/repo/:repo/remote',
 
   dgit('remote add ' + name + ' ' + url, repoDir)
     .then(
-      function() { res.json(200, {}); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({}); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -485,8 +486,8 @@ app.delete(config.prefix + '/repo/:repo/remote',
 
   dgit('remote rm ' + name, repoDir)
     .then(
-      function() { res.json(200, {}); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({}); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -514,8 +515,8 @@ app.get(config.prefix + '/repo/:repo/branch',
 
   dgit('branch --list', repoDir, gitParser.parseGitBranches)
     .then(
-      function(branches) { res.json(200, branches); },
-      function(error) { res.json(400, { error: error }); }
+      function(branches) { res.status(200).json(branches); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -539,14 +540,14 @@ app.post(config.prefix + '/repo/:repo/branch',
   logger.info('create branch:', branch);
 
   if (!branch) {
-    res.json(400, { error: 'No branch name is specified' });
+    res.status(400).json({ error: 'No branch name is specified' });
     return;
   }
 
   dgit('branch ' + branch, repoDir)
     .then(
-      function() { res.json(200, { branch: branch }); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({ branch: branch }); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -570,7 +571,7 @@ app.post(config.prefix + '/repo/:repo/checkout',
   logger.info('checkout branch:', branch);
 
   if (!branch) {
-    res.json(400, { error: 'No branch name is specified' });
+    res.status(400).json({ error: 'No branch name is specified' });
     return;
   }
 
@@ -582,8 +583,8 @@ app.post(config.prefix + '/repo/:repo/checkout',
       return dgit('checkout ' + branch, repoDir);
     })
     .then(
-      function() { res.json(200, { branch: branch }); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({ branch: branch }); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -612,8 +613,8 @@ app.post(config.prefix + '/repo/:repo/mv',
 
   dgit('mv ' + src + ' ' + dst, repoDir)
     .then(
-      function() { res.json(200, {}); },
-      function(error) { res.json(400, { error: error }); }
+      function() { res.status(200).json({}); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -635,8 +636,8 @@ app.get(config.prefix + '/repo/:repo/show/*',
 
   dgit('show ' + rev + ':' + file, repoDir)
     .then(
-      function(data) { res.send(200, data); },
-      function(error) { res.json(400, { error: error }); }
+      function(data) { res.status(200).send(data); },
+      function(error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -670,8 +671,8 @@ app.get(config.prefix + '/repo/:repo/ls-tree/*',
 	return obj;
     })
     .then(
-      function (obj) { res.json(200, obj); },
-      function (error) { res.json(400, { error: error }); }
+      function (obj) { res.status(200).json(obj); },
+      function (error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -707,8 +708,8 @@ app.get(config.prefix + '/repo/:repo/commit/:commit',
 
   dgit('show --decorate=full --pretty=fuller --parents ' + commit, repoDir,
     gitParser.parseGitCommitShow).then(
-      function(commit) { res.json(200, commit); },
-      function(error) { res.json(500, { error: error }); }
+      function(commit) { res.status(200).json(commit); },
+      function(error) { res.status(500).json({ error: error }); }
     );
 });
 
@@ -731,8 +732,8 @@ app.get(config.prefix + '/repo/:repo/log',
 
   dgit('log  --decorate=full --pretty=fuller --all --parents', repoDir,
     gitParser.parseGitLog).then(
-      function (log) { res.json(200, log); },
-      function (error) { res.json(400, { error: error }); }
+      function (log) { res.status(200).json(log); },
+      function (error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -764,7 +765,7 @@ app.post(config.prefix + '/repo/:repo/commit',
   logger.info('commit message:', message);
 
   if (!message) {
-    res.json(400, { error: 'Empty commit message' });
+    res.status(400).json({ error: 'Empty commit message' });
     return;
   }
 
@@ -773,8 +774,8 @@ app.post(config.prefix + '/repo/:repo/commit',
 
   dgit('commit ' + cmdOptions, repoDir, gitParser.parseCommit)
     .then(
-      function (commit) { res.json(200, commit); },
-      function (error) { res.json(400, { error: error }); }
+      function (commit) { res.status(200).json(commit); },
+      function (error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -797,8 +798,8 @@ app.post(config.prefix + '/repo/:repo/push',
 
   dgit('push ' + remote + ' ' + branch, repoDir)
     .then(
-      function (obj) { res.json(200, obj); },
-      function (error) { res.json(400, { error: error }); }
+      function (obj) { res.status(200).json(obj); },
+      function (error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -821,8 +822,8 @@ app.post(config.prefix + '/repo/:repo/pull',
 
   dgit('pull ' + remote + ' ' + branch, repoDir)
     .then(
-      function (obj) { res.json(200, { message: obj.trim() }); },
-      function (error) { res.json(400, { error: error }); }
+      function (obj) { res.status(200).json({ message: obj.trim() }); },
+      function (error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -856,15 +857,15 @@ app.get(config.prefix + '/repo/:repo/tree/*',
     .then(function(stats) {
       if (stats.isFile()) {
         return dfs.readFile(fileFullPath)
-	  .then(function (buffer) { res.send(200, buffer); });
+	  .then(function (buffer) { res.status(200).send(buffer); });
       }
       if (stats.isDirectory()) {
 	return dgit.lsR(fileFullPath)
-	  .then(function (obj) { res.json(200, obj); });
+	  .then(function (obj) { res.status(200).json(obj); });
       }
       return Q.reject('Not a regular file or a directory ' + file);
     })
-    .catch(function (error) { res.json(400, { error: error }); });
+    .catch(function (error) { res.status(400).json({ error: error }); });
 });
 
 /* PUT /repo/:repo/tree/<path>
@@ -884,7 +885,7 @@ app.put(config.prefix + '/repo/:repo/tree/*',
   var tmpPath = req.files && req.files.file ? req.files.file.path : null;
 
   if (!tmpPath) {
-    res.json(400, { error: 'No file uploaded' });
+    res.status(400).json({ error: 'No file uploaded' });
     return;
   }
 
@@ -906,8 +907,8 @@ app.put(config.prefix + '/repo/:repo/tree/*',
       })
     .then(function() { return dgit('add ' + file, repoDir); })
     .then(
-      function () { res.json(200, {}); },
-      function (error) { res.json(400, { error: error }); }
+      function () { res.status(200).json({}); },
+      function (error) { res.status(400).json({ error: error }); }
     );
 });
 
@@ -929,8 +930,8 @@ app.delete(config.prefix + '/repo/:repo/tree/*',
 
   dgit('rm -rf ' + file, repoDir)
     .then(
-      function () { res.json(200, {}); },
-      function (error) { res.json(400, { error: error }); }
+      function () { res.status(200).json({}); },
+      function (error) { res.status(400).json({ error: error }); }
     );
 });
 
