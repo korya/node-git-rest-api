@@ -339,7 +339,7 @@ app.post(config.prefix + '/repo/:repo/config',
 
   logger.info('config add', name, value);
 
-  dgit('config --local --add ' + name + ' ' + value, repoDir)
+  dgit('config --local --add ' + name + ' "' + value + '"', repoDir)
     .then(
       function() { res.status(200).json({}); },
       function(error) { res.status(400).json({ error: error }); }
@@ -368,7 +368,7 @@ app.put(config.prefix + '/repo/:repo/config',
 
   logger.info('config add', name, value);
 
-  dgit('config --local --replace-all ' + name + ' ' + value, repoDir)
+  dgit('config --local --replace-all ' + name + ' "' + value + '"', repoDir)
     .then(
       function() { res.status(200).json({}); },
       function(error) { res.status(400).json({ error: error }); }

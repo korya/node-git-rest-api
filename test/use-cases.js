@@ -174,6 +174,21 @@ describe('use case:', function () {
       });
   });
 
+  it('should config a user name with spaces in a new repo', function (done) {
+    agent
+      .post('/repo/test/config')
+      .send({ name: "user.name", value: "Vava The Great" })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.should.eql({});
+	done();
+      });
+  });
+
+ 
   it('should config a email name in a new repo', function (done) {
     agent
       .post('/repo/test/config')
