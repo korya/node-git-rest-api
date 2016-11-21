@@ -32,7 +32,7 @@ describe('use case:', function () {
 
   after(function (done) {
     server.close();
-    rimraf(TMPDIR, done);
+//    rimraf(TMPDIR, done);
   });
 
   it('should reply with [] when no repos', function (done) {
@@ -258,6 +258,35 @@ describe('use case:', function () {
 	done();
       });
   });
+
+/* WIP
+
+   it('should be possible to ls-tree on existing file', function (done) {
+     agent
+       .get('/repo/test/ls-tree/a.txt')
+//       .expect('Content-Type', /json/)
+       .expect(200)
+       .end(function (err, res) {
+         if (err) throw err;
+         should.not.exist(res.body.error);
+         res.text.should.equal('{omg}');
+         done();
+       });
+   });
+
+   it('should be possible to ls-tree on non-existing file', function (done) {
+     agent
+       .get('/repo/test/ls-tree/inexistant.txt')
+       .expect('Content-Type', /json/)
+       .expect(200)
+       .end(function (err, res) {
+         if (err) throw err;
+         should.not.exist(res.body.error);
+         res.text.should.equal('{omg}');
+         done();
+       });
+   });
+*/
 
   it('should return error when committing with no message', function (done) {
     agent
