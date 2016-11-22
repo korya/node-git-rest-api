@@ -1,7 +1,6 @@
 {
   "name": "git-rest-api",
-  "description":
-    "A library providing a restful Git API mimicking as most as possible the old good git",
+  "description": "A library providing a restful Git API mimicking as most as possible the old good git",
   "version": "0.1.6",
   "author": "korya <korya@github.com>",
   "repository": {
@@ -18,15 +17,16 @@
     "express"
   ],
   "dependencies": {
-    "express": "3.x",
     "async": "0.2.9",
-    "temp": "0.6.0",
-    "mkdirp": "0.3.5",
     "dive": "0.3.0",
+    "express": "3.x",
+    "method-override": "^2.3.6",
+    "mkdirp": "0.3.5",
     "q": "0.9.6",
     "rimraf": "2.2.5",
-    "winston": "0.7.2",
-    "signals": "~1.0.0"
+    "signals": "~1.0.0",
+    "temp": "0.6.0",
+    "winston": "0.7.2"
   },
   "devDependencies": {
     "mocha": "1.15.1",

@@ -93,10 +93,24 @@ describe('use case:', function () {
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
-	if (err) throw err;
-	should.not.exist(res.body.error);
-	res.body.should.eql({ repo: "test-clone" });
-	done();
+        if (err) throw err;
+        should.not.exist(res.body.error);
+        res.body.should.eql({ repo: "test-clone" });
+        done();
+      });
+  });
+
+  it('should be possible to make a shallow clone of a repo', function (done) {
+    agent
+      .post('/clone')
+      .send({ remote: "./test", repo: "test-clone-shallow", depth: 1 })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+        if (err) throw err;
+        should.not.exist(res.body.error);
+        res.body.should.eql({ repo: "test-clone-shallow" });
+        done();
       });
   });
 
@@ -106,9 +120,9 @@ describe('use case:', function () {
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
-	if (err) throw err;
-	res.body.should.eql(["test", "test-clone"]);
-	done();
+        if (err) throw err;
+        res.body.should.eql(["test", "test-clone", "test-clone-shallow"]);
+        done();
       });
   });
 
@@ -130,9 +144,9 @@ describe('use case:', function () {
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
-	if (err) throw err;
-	res.body.should.eql(["test"]);
-	done();
+        if (err) throw err;
+        res.body.should.eql(["test","test-clone-shallow"]);
+        done();
       });
   });
   function uploadFile(agent, repo, filepath, content) {
@@ -174,6 +188,21 @@ describe('use case:', function () {
       });
   });
 
+  it('should config a user name with spaces in a new repo', function (done) {
+    agent
+      .post('/repo/test/config')
+      .send({ name: "user.name", value: "Vava The Great" })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+	if (err) throw err;
+	should.not.exist(res.body.error);
+	res.body.should.eql({});
+	done();
+      });
+  });
+
+ 
   it('should config a email name in a new repo', function (done) {
     agent
       .post('/repo/test/config')
@@ -243,6 +272,35 @@ describe('use case:', function () {
 	done();
       });
   });
+
+/* WIP
+
+   it('should be possible to ls-tree on existing file', function (done) {
+     agent
+       .get('/repo/test/ls-tree/a.txt')
+//       .expect('Content-Type', /json/)
+       .expect(200)
+       .end(function (err, res) {
+         if (err) throw err;
+         should.not.exist(res.body.error);
+         res.text.should.equal('{omg}');
+         done();
+       });
+   });
+
+   it('should be possible to ls-tree on non-existing file', function (done) {
+     agent
+       .get('/repo/test/ls-tree/inexistant.txt')
+       .expect('Content-Type', /json/)
+       .expect(200)
+       .end(function (err, res) {
+         if (err) throw err;
+         should.not.exist(res.body.error);
+         res.text.should.equal('{omg}');
+         done();
+       });
+   });
+*/
 
   it('should return error when committing with no message', function (done) {
     agent
