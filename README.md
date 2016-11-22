@@ -73,6 +73,7 @@ Example 3: For a dockerized version, check [docker-node-git-rest-api](https://gi
 
 ## Example clients
 
-ATM (2016-11-18) [git-rest-api-client-php](https://github.com/shadiakiki1986/git-rest-api-client-php) is a php client (work-in-progress)
+* [git-rest-api-client-php](https://github.com/shadiakiki1986/git-rest-api-client-php)
+ * Can also be used as a [flysystem](https://github.com/thephpleague/flysystem/) adapter via [flysystem-git](https://github.com/shadiakiki1986/flysystem-git)
 
 ## API
