@@ -43,7 +43,7 @@ The following environment variables are supported:
 * `PORT`: port to serve at, default is `8080`
 * `PREFIX`: string prefix to serve repositories at, i.e. `http://localhost:[port]/[prefix]/repo/:repo/tree/:path`
 * `TMPDIR`: name of temporary directory to use to cache repositories
-* `LOGLEVEL`: log level of output. Levels from [here](https://www.npmjs.com/package/winston#logging-levels). Default is `error`
+* `LOGLEVEL`: log level for [winston](https://www.npmjs.com/package/winston#logging-levels) logger. Default is `error`
 
 ## Example servers
 
