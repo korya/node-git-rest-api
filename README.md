@@ -37,10 +37,17 @@ In your project install git-rest-api and express:
 $ npm install git-rest-api
 $ npm install express
 ```
+## Environment variables
+The following environment variables are supported:
+
+* `PORT`: port to serve at, default is `8080`
+* `PREFIX`: string prefix to serve repositories at, i.e. `http://localhost:[port]/[prefix]/repo/:repo/tree/:path`
+* `TMPDIR`: name of temporary directory to use to cache repositories
+* `LOGLEVEL`: log level of output. Levels from [here](https://www.npmjs.com/package/winston#logging-levels). Default is `error`
 
 ## Example servers
 
-A simple example of a server running `git-rest-api`:
+Example 1: A simple example of a server running `git-rest-api`:
 ```javascript
 var app = require('express')(),
     git = require('git-rest-api');
@@ -51,7 +58,7 @@ git.init(app, { installMiddleware: true }).then(function () {
 });
 ```
 
-All actions on repositories are specific to the client session.
+Example 2: All actions on repositories are specific to the client session.
 To share repositories between sessions/cookies, pass an existing path to `workDir` in the `init config`, e.g.
 ```javascript
 mkdirp = require('mkdirp');
@@ -62,7 +69,7 @@ git.init(app, { workDir: WRKDIR }).then(function () {
 });
 ```
 
-For a dockerized version, check [docker-node-git-rest-api](https://github.com/shadiakiki1986/docker-node-git-rest-api)
+Example 3: For a dockerized version, check [docker-node-git-rest-api](https://github.com/shadiakiki1986/docker-node-git-rest-api)
 
 ## Example clients
 

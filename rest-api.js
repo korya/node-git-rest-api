@@ -18,7 +18,7 @@ defaultConfig = {
 
 var logger = new (winston.Logger)({
   transports: [
-    new (winston.transports.Console)({ level: 'error' }),
+    new (winston.transports.Console)({ level: process.env['LOGLEVEL'] || 'error' }),
   ],
 });
 
