@@ -226,6 +226,7 @@ app.post(config.prefix + '/init',
  *     "remote": <remote-url>,
  *     ("repo": <local-repo-name>,)
  *     ("bare": <git's --bare>,)
+ *     ("depth": <git's --depth>,)
  *   }
  *
  * Response:
@@ -256,6 +257,7 @@ app.post(config.prefix + '/clone',
   var flags = '';
 
   if (req.body.bare) flags = flags + ' --bare';
+  if (req.body.depth) flags = flags + ' --depth ' + req.body.depth;
 
   dfs.exists(repoDir)
     .then(function (exists) {

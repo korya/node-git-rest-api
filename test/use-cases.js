@@ -32,7 +32,7 @@ describe('use case:', function () {
 
   after(function (done) {
     server.close();
-//    rimraf(TMPDIR, done);
+    rimraf(TMPDIR, done);
   });
 
   it('should reply with [] when no repos', function (done) {
@@ -93,10 +93,24 @@ describe('use case:', function () {
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
-	if (err) throw err;
-	should.not.exist(res.body.error);
-	res.body.should.eql({ repo: "test-clone" });
-	done();
+        if (err) throw err;
+        should.not.exist(res.body.error);
+        res.body.should.eql({ repo: "test-clone" });
+        done();
+      });
+  });
+
+  it('should be possible to make a shallow clone of a repo', function (done) {
+    agent
+      .post('/clone')
+      .send({ remote: "./test", repo: "test-clone-shallow", depth: 1 })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+        if (err) throw err;
+        should.not.exist(res.body.error);
+        res.body.should.eql({ repo: "test-clone-shallow" });
+        done();
       });
   });
 
@@ -106,9 +120,9 @@ describe('use case:', function () {
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
-	if (err) throw err;
-	res.body.should.eql(["test", "test-clone"]);
-	done();
+        if (err) throw err;
+        res.body.should.eql(["test", "test-clone", "test-clone-shallow"]);
+        done();
       });
   });
 
@@ -130,9 +144,9 @@ describe('use case:', function () {
       .expect('Content-Type', /json/)
       .expect(200)
       .end(function (err, res) {
-	if (err) throw err;
-	res.body.should.eql(["test"]);
-	done();
+        if (err) throw err;
+        res.body.should.eql(["test","test-clone-shallow"]);
+        done();
       });
   });
   function uploadFile(agent, repo, filepath, content) {
