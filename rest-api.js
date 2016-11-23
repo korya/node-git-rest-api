@@ -115,11 +115,17 @@ function getRepo(req, res, next) {
   });
 }
 
+// http://stackoverflow.com/a/4458580/4126114
+function urldecode(str) {
+  return decodeURIComponent((str+'').replace(/\+/g, '%20'));
+}
+
 function getFilePath(req, res, next) {
   // Path form: <PREFIX>/repo/<repo>/tree/<path>
   //               0      1     2     3     4
   var pathNoPrefix = req.path.substr(config.prefix.length);
   var filePath = pathNoPrefix.split('/').slice(4).join(path.sep);
+  filePath = urldecode(filePath);
 
   logger.info('path: ', filePath)
   /* get rid of trailing slash */
@@ -667,7 +673,7 @@ app.get(config.prefix + '/repo/:repo/ls-tree/*',
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
 
-  dgit('ls-tree -tr ' + rev + ' ' + file, repoDir, gitParser.parseLsTree)
+  dgit('ls-tree -tr ' + rev + ' "' + file + '"', repoDir, gitParser.parseLsTreeSimple)
     .then(function (obj) {
 	if (!obj) return Q.reject('No such file ' + file + ' in ' + rev);
 	return obj;
@@ -928,7 +934,7 @@ app.put(config.prefix + '/repo/:repo/tree/*',
       return dfs.rename(tmpPath, dstPath)
         .catch(function (err) { return dfs.copy(tmpPath, dstPath); });
       })
-    .then(function() { return dgit('add ' + file, repoDir); })
+    .then(function() { return dgit('add "' + file + '"', repoDir); })
     .then(
       function () { res.status(200).json({}); },
       function (error) { res.status(400).json({ error: error }); }

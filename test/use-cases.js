@@ -273,35 +273,6 @@ describe('use case:', function () {
       });
   });
 
-/* WIP
-
-   it('should be possible to ls-tree on existing file', function (done) {
-     agent
-       .get('/repo/test/ls-tree/a.txt')
-//       .expect('Content-Type', /json/)
-       .expect(200)
-       .end(function (err, res) {
-         if (err) throw err;
-         should.not.exist(res.body.error);
-         res.text.should.equal('{omg}');
-         done();
-       });
-   });
-
-   it('should be possible to ls-tree on non-existing file', function (done) {
-     agent
-       .get('/repo/test/ls-tree/inexistant.txt')
-       .expect('Content-Type', /json/)
-       .expect(200)
-       .end(function (err, res) {
-         if (err) throw err;
-         should.not.exist(res.body.error);
-         res.text.should.equal('{omg}');
-         done();
-       });
-   });
-*/
-
   it('should return error when committing with no message', function (done) {
     agent
       .post('/repo/test/commit')
@@ -343,6 +314,34 @@ describe('use case:', function () {
 	done();
       });
   });
+
+   it('should be possible to ls-tree on committed file', function (done) {
+     agent
+       .get('/repo/test/ls-tree/a.txt')
+       .expect('Content-Type', /json/)
+       .expect(200)
+       .end(function (err, res) {
+         if (err) throw err;
+         should.not.exist(res.body.error);
+         res.body.length.should.equal(1);
+         res.body[0].name.should.equal("a.txt");
+         res.body[0].type.should.equal("blob");
+         done();
+       });
+   });
+
+   it('should be possible to ls-tree on non-existing file', function (done) {
+     agent
+       .get('/repo/test/ls-tree/inexistant.txt')
+       .expect('Content-Type', /json/)
+       .expect(200)
+       .end(function (err, res) {
+         if (err) throw err;
+         should.not.exist(res.body.error);
+         res.body.length.should.equal(0);
+         done();
+       });
+   });
 
   it('should return a correct branch list', function (done) {
     agent
@@ -630,6 +629,33 @@ describe('use case:', function () {
 	res.body.parents[0].should.startWith(commitB);
 	res.body.message.should.eql('AAA -> a.txt, remove b.txt');
 	done();
+      });
+  });
+
+
+  it('should urldecode file names with spaces', function (done) {
+    var fn = 'a file with spaces.txt';
+    uploadFile(agent, 'test', fn, 'Content of file')
+      .expect(200)
+      .end(function (err, res) {
+        agent
+          .post('/repo/test/commit')
+          .send({ message: 'commit file with spaces in name' })
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .end(function (err, res) {
+
+            agent
+              .get('/repo/test/ls-tree/' + fn)
+              .expect(200)
+              .end(function (err, res) {
+                if (err) throw err;
+                should.not.exist(res.body.error);
+                res.body.length.should.equal(1);
+                res.body[0].name.should.equal(fn);
+                done();
+              });
+          });
       });
   });
 
