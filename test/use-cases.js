@@ -634,7 +634,7 @@ describe('use case:', function () {
 
 
   it('should urldecode file names with spaces', function (done) {
-    var fn = 'a file with spaces.txt';
+    var fn = 'folder name/a file with spaces.txt';
     uploadFile(agent, 'test', fn, 'Content of file')
       .expect(200)
       .end(function (err, res) {
@@ -652,8 +652,17 @@ describe('use case:', function () {
                 if (err) throw err;
                 should.not.exist(res.body.error);
                 res.body.length.should.equal(1);
-                res.body[0].name.should.equal(fn);
-                done();
+                res.body[0].name.should.equal(path.basename(fn));
+
+                agent
+                  .get('/repo/test/tree/' + fn)
+                  .expect(200)
+                  .end(function (err, res) {
+                    if (err) throw err;
+                    should.not.exist(res.body.error);
+                    res.text.should.equal('Content of file');
+                    done();
+                  });
               });
           });
       });

@@ -652,6 +652,12 @@ app.get(config.prefix + '/repo/:repo/show/*',
 /* GET /repo/:repo/ls-tree/<path>?rev=<revision>
  *  `rev` -- can be any legal revision
  * 
+ * Request:
+ *   json: {
+ *     ("t": <git ls-tree's -t>,)
+ *     ("r": <git ls-tree's -r>,)
+ *   }
+ *
  * Response:
  *   json: [
  *     ({
@@ -673,7 +679,11 @@ app.get(config.prefix + '/repo/:repo/ls-tree/*',
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
 
-  dgit('ls-tree -tr ' + rev + ' "' + file + '"', repoDir, gitParser.parseLsTreeSimple)
+  var flags = '';
+  if (req.body.t) flags = flags + ' -t';
+  if (req.body.r) flags = flags + ' -r';
+
+  dgit('ls-tree' + flags + ' ' + rev + ' "' + file + '"', repoDir, gitParser.parseLsTreeSimple)
     .then(function (obj) {
 	if (!obj) return Q.reject('No such file ' + file + ' in ' + rev);
 	return obj;
