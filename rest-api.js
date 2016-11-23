@@ -717,9 +717,26 @@ app.get(config.prefix + '/repo/:repo/commit/:commit',
 
 /* GET /repo/:repo/log
  * 
- * Response:
+ * Request:
  *   json: {
+ *     ("revRange": <git log's revision range>,)
  *   }
+ *
+ * Response:
+ *   json: [
+ *     ({
+ *       refs: [],
+ *       sha1: <commit sha1 hash string>,
+ *       parents: [ (<parent sha1 hash string>)* ],
+ *       authorName: <author name>,
+ *       authorEmail: <author email>',
+ *       authorDate: <author date>,
+ *       committerName: <committer name>,
+ *       committerEmail: <committer email>,
+ *       commitDate: <commit date>,
+ *       message: <commit message>
+ *     })*
+ *   ]
  * Error:
  *   json: { "error": <error> }
  */
@@ -732,7 +749,11 @@ app.get(config.prefix + '/repo/:repo/log',
 
   logger.info('log');
 
-  dgit('log  --decorate=full --pretty=fuller --all --parents', repoDir,
+  var flags = '';
+
+  if (req.body.revRange) flags = flags + ' ' + req.body.revRange;
+
+  dgit('log  --decorate=full --pretty=fuller --all --parents' + flags, repoDir,
     gitParser.parseGitLog).then(
       function (log) { res.status(200).json(log); },
       function (error) { res.status(400).json({ error: error }); }

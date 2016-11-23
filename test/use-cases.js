@@ -518,6 +518,20 @@ describe('use case:', function () {
       });
   });
 
+  it('should be possible to read log of last commit alone', function (done) {
+    agent
+      .get('/repo/test/log')
+      .send({ revRange: -1 })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end(function (err, res) {
+        if (err) throw err;
+        res.body.should.be.an.instanceOf(Array);
+        res.body.length.should.equal(1);
+        done();
+      });
+  });
+
   it('should be possible to see commit A details', function (done) {
     agent
       .get('/repo/test/commit/' + commitA)
