@@ -115,11 +115,17 @@ function getRepo(req, res, next) {
   });
 }
 
+// http://stackoverflow.com/a/4458580/4126114
+function urldecode(str) {
+  return decodeURIComponent((str+'').replace(/\+/g, '%20'));
+}
+
 function getFilePath(req, res, next) {
   // Path form: <PREFIX>/repo/<repo>/tree/<path>
   //               0      1     2     3     4
   var pathNoPrefix = req.path.substr(config.prefix.length);
   var filePath = pathNoPrefix.split('/').slice(4).join(path.sep);
+  filePath = urldecode(filePath);
 
   logger.info('path: ', filePath)
   /* get rid of trailing slash */
@@ -646,6 +652,12 @@ app.get(config.prefix + '/repo/:repo/show/*',
 /* GET /repo/:repo/ls-tree/<path>?rev=<revision>
  *  `rev` -- can be any legal revision
  * 
+ * Request:
+ *   json: {
+ *     ("t": <git ls-tree's -t>,)
+ *     ("r": <git ls-tree's -r>,)
+ *   }
+ *
  * Response:
  *   json: [
  *     ({
@@ -667,7 +679,11 @@ app.get(config.prefix + '/repo/:repo/ls-tree/*',
   var rev = req.git.file.rev || 'HEAD';
   var file = req.git.file.path;
 
-  dgit('ls-tree -tr ' + rev + ' ' + file, repoDir, gitParser.parseLsTree)
+  var flags = '';
+  if (req.body.t) flags = flags + ' -t';
+  if (req.body.r) flags = flags + ' -r';
+
+  dgit('ls-tree' + flags + ' ' + rev + ' "' + file + '"', repoDir, gitParser.parseLsTreeSimple)
     .then(function (obj) {
 	if (!obj) return Q.reject('No such file ' + file + ' in ' + rev);
 	return obj;
@@ -717,9 +733,26 @@ app.get(config.prefix + '/repo/:repo/commit/:commit',
 
 /* GET /repo/:repo/log
  * 
- * Response:
+ * Request:
  *   json: {
+ *     ("revRange": <git log's revision range>,)
  *   }
+ *
+ * Response:
+ *   json: [
+ *     ({
+ *       refs: [],
+ *       sha1: <commit sha1 hash string>,
+ *       parents: [ (<parent sha1 hash string>)* ],
+ *       authorName: <author name>,
+ *       authorEmail: <author email>',
+ *       authorDate: <author date>,
+ *       committerName: <committer name>,
+ *       committerEmail: <committer email>,
+ *       commitDate: <commit date>,
+ *       message: <commit message>
+ *     })*
+ *   ]
  * Error:
  *   json: { "error": <error> }
  */
@@ -732,7 +765,11 @@ app.get(config.prefix + '/repo/:repo/log',
 
   logger.info('log');
 
-  dgit('log  --decorate=full --pretty=fuller --all --parents', repoDir,
+  var flags = '';
+
+  if (req.body.revRange) flags = flags + ' ' + req.body.revRange;
+
+  dgit('log  --decorate=full --pretty=fuller --all --parents' + flags, repoDir,
     gitParser.parseGitLog).then(
       function (log) { res.status(200).json(log); },
       function (error) { res.status(400).json({ error: error }); }
@@ -907,7 +944,7 @@ app.put(config.prefix + '/repo/:repo/tree/*',
       return dfs.rename(tmpPath, dstPath)
         .catch(function (err) { return dfs.copy(tmpPath, dstPath); });
       })
-    .then(function() { return dgit('add ' + file, repoDir); })
+    .then(function() { return dgit('add "' + file + '"', repoDir); })
     .then(
       function () { res.status(200).json({}); },
       function (error) { res.status(400).json({ error: error }); }
