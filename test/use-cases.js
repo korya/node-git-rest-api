@@ -4,7 +4,9 @@ var request = require('supertest'),
     mkdirp = require('mkdirp'),
     rimraf = require('rimraf'),
     fs = require('fs'),
-    api = require('../rest-api');
+    api = require('../rest-api'),
+    uploadFile = require('./uploadFile')
+    ;
 
 describe('use case:', function () {
   var TMPDIR = './tmp-test-git';
@@ -149,24 +151,6 @@ describe('use case:', function () {
         done();
       });
   });
-  function uploadFile(agent, repo, filepath, content) {
-    var boundary = Math.random();
-
-    function wrapContent(boundary, filename, content) {
-      var str = '';
-      str += '--' + boundary + '\r\n';
-      str += 'Content-Disposition: form-data; name="file"; filename="'+filename+'"\r\n';
-      str += 'Content-Type: image/png\r\n';
-      str += '\r\n';
-      str += content;
-      str += '\r\n--' + boundary + '--';
-      return str;
-    }
-
-    return agent.put('/repo/' + repo + '/tree/' + filepath)
-      .set('Content-Type', 'multipart/form-data; boundary=' + boundary)
-      .send(wrapContent(boundary, path.basename(filepath), content));
-  }
 
   /**
    * Working on "test" repo
@@ -632,6 +616,91 @@ describe('use case:', function () {
       });
   });
 
+  it('should be possible to see diff of a.txt in HEAD~3 and HEAD~2', function (done) {
+    agent
+      .get('/repo/test/diff/a.txt?commit1=' + 'HEAD~3' + '&commit2=' + 'HEAD~2')
+      .expect(200)
+      .end(function (err, res) {
+        if (err) throw err;
+        res.text.should.equal(
+        'diff --git a/a.txt b/a.txt\n'+
+        'new file mode 100644\n'+
+        'index 0000000..8c7e5a6\n'+
+        '--- /dev/null\n'+
+        '+++ b/a.txt\n'+
+        '@@ -0,0 +1 @@\n'+
+        '+A\n'+
+        '\\ No newline at end of file\n');
+        done();
+      });
+  });
+
+  it('should be possible to see diff of a.txt in commitA and commitC', function (done) {
+    agent
+      .get('/repo/test/diff/a.txt?commit1=' + commitA + '&commit2=' + commitC)
+      .expect(200)
+      .end(function (err, res) {
+        if (err) throw err;
+        res.text.should.equal(
+        'diff --git a/a.txt b/a.txt\n'+
+        'index 8c7e5a6..43d88b6 100644\n'+
+        '--- a/a.txt\n'+
+        '+++ b/a.txt\n'+
+        '@@ -1 +1 @@\n'+
+        '-A\n'+
+        '\\ No newline at end of file\n'+
+        '+AAA\n'+
+        '\\ No newline at end of file\n');
+        done();
+      });
+  });
+
+  it('should be possible to see diff of root in commitB and commitC', function (done) {
+    agent
+      .get('/repo/test/diff/?commit1=' + commitB + '&commit2=' + commitC)
+      .expect(200)
+      .end(function (err, res) {
+        if (err) throw err;
+        res.text.should.equal(
+        'diff --git a/a.txt b/a.txt\n'+
+        'index 6c376d9..43d88b6 100644\n'+
+        '--- a/a.txt\n'+
+        '+++ b/a.txt\n'+
+        '@@ -1 +1 @@\n'+
+        '-AA\n'+
+        '\\ No newline at end of file\n'+
+        '+AAA\n'+
+        '\\ No newline at end of file\n'+
+        'diff --git a/b.txt b/b.txt\n'+
+        'deleted file mode 100644\n'+
+        'index 080f8fb..0000000\n'+
+        '--- a/b.txt\n'+
+        '+++ /dev/null\n'+
+        '@@ -1 +0,0 @@\n'+
+        '-BB\n'+
+        '\\ No newline at end of file\n');
+        done();
+      });
+  });
+
+  it('should be possible to see diff of a.txt in commitB (implicitly vs HEAD)', function (done) {
+    agent
+      .get('/repo/test/diff/b.txt?commit1=' + commitB)
+      .expect(200)
+      .end(function (err, res) {
+        if (err) throw err;
+        res.text.should.equal(
+        'diff --git a/b.txt b/b.txt\n'+
+        'deleted file mode 100644\n'+
+        'index 080f8fb..0000000\n'+
+        '--- a/b.txt\n'+
+        '+++ /dev/null\n'+
+        '@@ -1 +0,0 @@\n'+
+        '-BB\n'+
+        '\\ No newline at end of file\n');
+        done();
+      });
+  });
 
   it('should urldecode file names with spaces', function (done) {
     var fn = 'folder name/a file with spaces.txt';

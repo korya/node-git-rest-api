@@ -725,6 +725,35 @@ app.get(config.prefix + '/repo/:repo/commit/:commit',
     );
 });
 
+/* GET /repo/:repo/diff/<path>?commit1=<sha1>&commit2=<sha1>&cached
+ *  `sha1` -- sha1 hash string
+ * 
+ * Response:
+ *   <output of git diff file commit1 commit2>
+ * Error:
+ *   json: { "error": <error> }
+ */
+app.get(config.prefix + '/repo/:repo/diff/*',
+  [prepareGitVars, getWorkdir, getRepo, getFilePath],
+  function(req, res)
+{
+  var cmdArgs = '';
+  var cmdOptions = '';
+  var repoDir = req.git.tree.repoDir;
+
+  if(req.query.commit1) cmdArgs += req.query.commit1 + ' ';
+  if(req.query.commit2) cmdArgs += req.query.commit2 + ' ';
+  if(req.git.file.path) cmdArgs += '-- ' + req.git.file.path + ' ';
+
+  if (req.query.cached) cmdOptions += '--cached ';
+
+  dgit('diff ' + cmdOptions + cmdArgs, repoDir)
+    .then(
+      function(data) { res.status(200).send(data); },
+      function(error) { res.status(400).json({ error: error }); }
+    );
+});
+
 /* GET /repo/:repo/log
  * 
  * Request:
