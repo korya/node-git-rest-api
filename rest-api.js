@@ -3,7 +3,7 @@ var express = require('express'),
     path = require('path'),
     temp = require('temp'),
     Q = require('q'),
-    winston = require('winston'),
+    logger = require('./lib/logger'),
     dgit = require('./lib/deferred-git'),
     gitParser = require('./lib/git-parser'),
     addressParser = require('./lib/address-parser'),
@@ -15,12 +15,6 @@ defaultConfig = {
   tmpDir: '/tmp/git',
   installMiddleware: false,
 };
-
-var logger = new (winston.Logger)({
-  transports: [
-    new (winston.transports.Console)({ level: process.env['LOGLEVEL'] || 'error' }),
-  ],
-});
 
 function mergeConfigs(dst, src) {
   /* XXX good enough */
