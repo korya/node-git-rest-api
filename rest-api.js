@@ -754,12 +754,7 @@ app.get(config.prefix + '/repo/:repo/diff/*',
     );
 });
 
-/* GET /repo/:repo/log
- * 
- * Request:
- *   json: {
- *     ("revRange": <git log's revision range>,)
- *   }
+/* GET /repo/:repo/log?revRange=<git log's revision range>
  *
  * Response:
  *   json: [
@@ -790,7 +785,7 @@ app.get(config.prefix + '/repo/:repo/log',
 
   var flags = '';
 
-  if (req.body.revRange) flags = flags + ' ' + req.body.revRange;
+  if (req.query.revRange) flags = flags + ' ' + req.query.revRange;
 
   dgit('log  --decorate=full --pretty=fuller --all --parents' + flags, repoDir,
     gitParser.parseGitLog).then(
