@@ -1,7 +1,7 @@
 {
   "name": "git-rest-api",
   "description": "A library providing a restful Git API mimicking as most as possible the old good git",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "author": "korya <korya@github.com>",
   "repository": {
     "type": "git",
